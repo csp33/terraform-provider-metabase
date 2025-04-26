@@ -93,7 +93,7 @@ func (r *PermissionGroup) Create(ctx context.Context, req resource.CreateRequest
 		return
 	}
 
-	url := fmt.Sprintf("%s:%s/api/permissions/group", r.client.Host, r.client.Port)
+	url := fmt.Sprintf("%s/api/permissions/group", r.client.Host)
 	body := fmt.Sprintf(`{"name":"%s"}`, data.Name.ValueString())
 
 	request, err := http.NewRequest("POST", url, strings.NewReader(body))
@@ -141,7 +141,7 @@ func (r *PermissionGroup) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	url := fmt.Sprintf("%s:%s/api/permissions/group/%s", r.client.Host, r.client.Port, data.Id.ValueString())
+	url := fmt.Sprintf("%s/api/permissions/group/%s", r.client.Host, data.Id.ValueString())
 
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -194,7 +194,7 @@ func (r *PermissionGroup) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	url := fmt.Sprintf("%s:%s/api/permissions/group/%s", r.client.Host, r.client.Port, data.Id.ValueString())
+	url := fmt.Sprintf("%s/api/permissions/group/%s", r.client.Host, data.Id.ValueString())
 
 	body := fmt.Sprintf(`{"name":"%s"}`, data.Name.ValueString())
 	request, err := http.NewRequest("PUT", url, strings.NewReader(body))
@@ -229,7 +229,7 @@ func (r *PermissionGroup) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	url := fmt.Sprintf("%s:%s/api/permissions/group/%s", r.client.Host, r.client.Port, data.Id.ValueString())
+	url := fmt.Sprintf("%s/api/permissions/group/%s", r.client.Host, data.Id.ValueString())
 
 	request, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
