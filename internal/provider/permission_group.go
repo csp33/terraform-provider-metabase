@@ -39,7 +39,7 @@ type PermissionGroupModel struct {
 }
 
 func (r *PermissionGroup) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName
+	resp.TypeName = req.ProviderTypeName + "_permission_group"
 }
 
 func (r *PermissionGroup) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -50,7 +50,7 @@ func (r *PermissionGroup) Schema(ctx context.Context, req resource.SchemaRequest
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
 				MarkdownDescription: "Name of the group",
-				Optional:            false,
+				Required:            true,
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
