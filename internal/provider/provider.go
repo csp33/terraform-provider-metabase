@@ -16,42 +16,59 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// Ensure ScaffoldingProvider satisfies various provider interfaces.
-var _ provider.Provider = &ScaffoldingProvider{}
-var _ provider.ProviderWithFunctions = &ScaffoldingProvider{}
-var _ provider.ProviderWithEphemeralResources = &ScaffoldingProvider{}
+// Ensure MetabaseProvider satisfies various provider interfaces.
+var _ provider.Provider = &MetabaseProvider{}
+var _ provider.ProviderWithFunctions = &MetabaseProvider{}
+var _ provider.ProviderWithEphemeralResources = &MetabaseProvider{}
 
-// ScaffoldingProvider defines the provider implementation.
-type ScaffoldingProvider struct {
+// MetabaseProvider defines the provider implementation.
+type MetabaseProvider struct {
 	// version is set to the provider version on release, "dev" when the
 	// provider is built and ran locally, and "test" when running acceptance
 	// testing.
 	version string
 }
 
-// ScaffoldingProviderModel describes the provider data model.
-type ScaffoldingProviderModel struct {
-	Endpoint types.String `tfsdk:"endpoint"`
+type MetabaseClient struct {
+	Host   string
+	Port   string
+	ApiKey string
+	Client *http.Client
 }
 
-func (p *ScaffoldingProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "scaffolding"
+// MetabaseProviderModel describes the provider data model.
+type MetabaseProviderModel struct {
+	Host types.String `tfsdk:"host"`
+	Port types.String `tfsdk:"port"`
+	User types.String `tfsdk:"api_key"`
+}
+
+func (p *MetabaseProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "metabase"
 	resp.Version = p.version
 }
 
-func (p *ScaffoldingProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *MetabaseProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
-			"endpoint": schema.StringAttribute{
-				MarkdownDescription: "Example provider attribute",
-				Optional:            true,
+			"host": schema.StringAttribute{
+				MarkdownDescription: "Metabase API host URL",
+				Optional:            false,
+			},
+			"port": schema.StringAttribute{
+				MarkdownDescription: "Metabase API host port",
+				Optional:            false,
+			},
+			"api_key": schema.StringAttribute{
+				MarkdownDescription: "Metabase API Key",
+				Optional:            false,
 			},
 		},
 	}
 }
 
-func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	var data ScaffoldingProviderModel
+func (p *MetabaseProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var data MetabaseProviderModel
 
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 
@@ -62,39 +79,36 @@ func (p *ScaffoldingProvider) Configure(ctx context.Context, req provider.Config
 	// Configuration values are now available.
 	// if data.Endpoint.IsNull() { /* ... */ }
 
-	// Example client configuration for data sources and resources
-	client := http.DefaultClient
-	resp.DataSourceData = client
-	resp.ResourceData = client
+	metabaseClient := &MetabaseClient{
+		Host:   data.Host.ValueString(),
+		Port:   data.Port.ValueString(),
+		ApiKey: data.User.ValueString(),
+		Client: http.DefaultClient,
+	}
+
+	resp.DataSourceData = metabaseClient
+	resp.ResourceData = metabaseClient
 }
 
-func (p *ScaffoldingProvider) Resources(ctx context.Context) []func() resource.Resource {
-	return []func() resource.Resource{
-		NewExampleResource,
-	}
+func (p *MetabaseProvider) Resources(ctx context.Context) []func() resource.Resource {
+	return []func() resource.Resource{}
 }
 
-func (p *ScaffoldingProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
-	return []func() ephemeral.EphemeralResource{
-		NewExampleEphemeralResource,
-	}
+func (p *MetabaseProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
+	return []func() ephemeral.EphemeralResource{}
 }
 
-func (p *ScaffoldingProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{
-		NewExampleDataSource,
-	}
+func (p *MetabaseProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{}
 }
 
-func (p *ScaffoldingProvider) Functions(ctx context.Context) []func() function.Function {
-	return []func() function.Function{
-		NewExampleFunction,
-	}
+func (p *MetabaseProvider) Functions(ctx context.Context) []func() function.Function {
+	return []func() function.Function{}
 }
 
 func New(version string) func() provider.Provider {
 	return func() provider.Provider {
-		return &ScaffoldingProvider{
+		return &MetabaseProvider{
 			version: version,
 		}
 	}
