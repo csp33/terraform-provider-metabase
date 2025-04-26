@@ -53,15 +53,15 @@ func (p *MetabaseProvider) Schema(ctx context.Context, req provider.SchemaReques
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
 				MarkdownDescription: "Metabase API host URL",
-				Optional:            false,
+				Required:            true,
 			},
-			"port": schema.StringAttribute{
+			"port": schema.Int32Attribute{
 				MarkdownDescription: "Metabase API host port",
-				Optional:            false,
+				Required:            true,
 			},
 			"api_key": schema.StringAttribute{
 				MarkdownDescription: "Metabase API Key",
-				Optional:            false,
+				Required:            true,
 			},
 		},
 	}
