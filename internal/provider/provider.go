@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -27,12 +28,6 @@ type MetabaseProvider struct {
 	// provider is built and ran locally, and "test" when running acceptance
 	// testing.
 	version string
-}
-
-type MetabaseClient struct {
-	Host   string
-	ApiKey string
-	Client *http.Client
 }
 
 // MetabaseProviderModel describes the provider data model.
@@ -73,9 +68,9 @@ func (p *MetabaseProvider) Configure(ctx context.Context, req provider.Configure
 	// Configuration values are now available.
 	// if data.Endpoint.IsNull() { /* ... */ }
 
-	metabaseClient := &MetabaseClient{
+	metabaseClient := &metabase.MetabaseAPIClient{
 		Host:   data.Host.ValueString(),
-		ApiKey: data.User.ValueString(),
+		APIKey: data.User.ValueString(),
 		Client: http.DefaultClient,
 	}
 
