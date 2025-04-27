@@ -119,6 +119,10 @@ func (r *PermissionGroup) Update(ctx context.Context, req resource.UpdateRequest
 	var data terraform.PermissionGroupTerraformModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	_, err := r.repository.Update(ctx, data.Id.ValueInt32(), data.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update permission group: %s", err))
@@ -133,6 +137,10 @@ func (r *PermissionGroup) Update(ctx context.Context, req resource.UpdateRequest
 func (r *PermissionGroup) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	var data terraform.PermissionGroupTerraformModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
+
+	if resp.Diagnostics.HasError() {
+		return
+	}
 
 	err := r.repository.Delete(ctx, data.Id.ValueInt32())
 	if err != nil {
