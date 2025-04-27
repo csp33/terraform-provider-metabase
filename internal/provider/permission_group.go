@@ -113,13 +113,13 @@ func (r *PermissionGroup) Update(ctx context.Context, req resource.UpdateRequest
 	var data models.PermissionGroup
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
-	updateResponse, err := r.repository.Update(ctx, data.Id, data.Name)
+	_, err := r.repository.Update(ctx, data.Id, data.Name)
 	if err != nil {
 		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update permission group: %s", err))
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &updateResponse)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *PermissionGroup) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
