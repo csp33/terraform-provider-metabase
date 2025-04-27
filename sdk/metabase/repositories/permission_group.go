@@ -33,7 +33,7 @@ func (r *PermissionGroupRepository) Create(ctx context.Context, name string) (*m
 }
 
 func (r *PermissionGroupRepository) Get(ctx context.Context, id int) (*models.PermissionGroup, error) {
-	path := fmt.Sprintf("/api/permissions/group/%s", id)
+	path := fmt.Sprintf("/api/permissions/group/%d", id)
 	resp, err := r.client.Get(ctx, path)
 	if err != nil {
 		return nil, err
