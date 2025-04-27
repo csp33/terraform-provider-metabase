@@ -6,6 +6,7 @@ package terraform
 import (
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/dtos"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"strconv"
 )
 
 type PermissionGroupTerraformModel struct {
@@ -15,7 +16,7 @@ type PermissionGroupTerraformModel struct {
 
 func CreatePermissionGroupTerraformModelFromDTO(source *dtos.PermissionGroupDTO) PermissionGroupTerraformModel {
 	return PermissionGroupTerraformModel{
-		Id:   types.StringValue(source.Id),
+		Id:   types.StringValue(strconv.Itoa(source.Id)),
 		Name: types.StringValue(source.Name),
 	}
 
