@@ -31,7 +31,6 @@ type MetabaseProvider struct {
 
 type MetabaseClient struct {
 	Host   string
-	Port   string
 	ApiKey string
 	Client *http.Client
 }
@@ -39,7 +38,6 @@ type MetabaseClient struct {
 // MetabaseProviderModel describes the provider data model.
 type MetabaseProviderModel struct {
 	Host types.String `tfsdk:"host"`
-	Port types.String `tfsdk:"port"`
 	User types.String `tfsdk:"api_key"`
 }
 
@@ -53,10 +51,6 @@ func (p *MetabaseProvider) Schema(ctx context.Context, req provider.SchemaReques
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
 				MarkdownDescription: "Metabase API host URL",
-				Required:            true,
-			},
-			"port": schema.Int32Attribute{
-				MarkdownDescription: "Metabase API host port",
 				Required:            true,
 			},
 			"api_key": schema.StringAttribute{
@@ -81,7 +75,6 @@ func (p *MetabaseProvider) Configure(ctx context.Context, req provider.Configure
 
 	metabaseClient := &MetabaseClient{
 		Host:   data.Host.ValueString(),
-		Port:   data.Port.ValueString(),
 		ApiKey: data.User.ValueString(),
 		Client: http.DefaultClient,
 	}
