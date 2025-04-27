@@ -6,8 +6,6 @@ package provider
 import (
 	"context"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
-	"net/http"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/function"
@@ -32,8 +30,8 @@ type MetabaseProvider struct {
 
 // MetabaseProviderModel describes the provider data model.
 type MetabaseProviderModel struct {
-	Host types.String `tfsdk:"host"`
-	User types.String `tfsdk:"api_key"`
+	Host   types.String `tfsdk:"host"`
+	APIKey types.String `tfsdk:"api_key"`
 }
 
 func (p *MetabaseProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -68,11 +66,7 @@ func (p *MetabaseProvider) Configure(ctx context.Context, req provider.Configure
 	// Configuration values are now available.
 	// if data.Endpoint.IsNull() { /* ... */ }
 
-	metabaseClient := &metabase.MetabaseAPIClient{
-		Host:   data.Host.ValueString(),
-		APIKey: data.User.ValueString(),
-		Client: http.DefaultClient,
-	}
+	metabaseClient := metabase.NewMetabaseAPIClient(data.Host.ValueString(), data.APIKey.ValueString())
 
 	resp.DataSourceData = metabaseClient
 	resp.ResourceData = metabaseClient

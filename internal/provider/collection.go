@@ -89,7 +89,7 @@ func (r *Collection) Create(ctx context.Context, req resource.CreateRequest, res
 		return
 	}
 
-	createResponse, err := r.repository.Create(ctx, data.Name.ValueString(), data.ParentId.ValueString())
+	createResponse, err := r.repository.Create(ctx, data.Name.ValueString(), data.ParentId.ValueStringPointer())
 	if err != nil {
 		resp.Diagnostics.AddError("Create Error", fmt.Sprintf("Unable to create permission group: %s", err))
 		return
@@ -127,7 +127,7 @@ func (r *Collection) Update(ctx context.Context, req resource.UpdateRequest, res
 		return
 	}
 
-	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.Name.ValueString(), data.ParentId.ValueString())
+	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.Name.ValueStringPointer(), data.ParentId.ValueStringPointer())
 	if err != nil {
 		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update permission group: %s", err))
 		return

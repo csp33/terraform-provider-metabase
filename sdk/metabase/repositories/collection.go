@@ -19,8 +19,11 @@ func NewCollectionRepository(client *metabase.MetabaseAPIClient) *CollectionRepo
 	return &CollectionRepository{client: client}
 }
 
-func (r *CollectionRepository) Create(ctx context.Context, name string, parentId string) (*dtos.CollectionDTO, error) {
-	body := map[string]string{"name": name, "parent_id": parentId}
+func (r *CollectionRepository) Create(ctx context.Context, name string, parentId *string) (*dtos.CollectionDTO, error) {
+	body := map[string]string{"name": name}
+	if parentId != nil {
+		body["parent_id"] = *parentId
+	}
 
 	resp, err := r.client.Post(ctx, "/api/collection", body)
 	if err != nil {
@@ -50,9 +53,18 @@ func (r *CollectionRepository) Get(ctx context.Context, id string) (*dtos.Collec
 	return &res, nil
 }
 
-func (r *CollectionRepository) Update(ctx context.Context, id string, name string, parentId string) (bool, error) {
+func (r *CollectionRepository) Update(ctx context.Context, id string, name *string, parentId *string) (bool, error) {
 	path := fmt.Sprintf("/api/collection/%s", id)
-	body := map[string]string{"name": name, "parent_id": parentId}
+	body := map[string]any{}
+	if name != nil {
+		body["name"] = *name
+	}
+
+	if parentId != nil {
+		body["parent_id"] = *parentId
+	} else {
+		body["parent_id"] = nil
+	}
 
 	resp, err := r.client.Put(ctx, path, body)
 	if err != nil {

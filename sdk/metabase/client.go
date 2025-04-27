@@ -18,6 +18,14 @@ type MetabaseAPIClient struct {
 	Client *http.Client
 }
 
+func NewMetabaseAPIClient(host, apiKey string) *MetabaseAPIClient {
+	return &MetabaseAPIClient{
+		Host:   host,
+		APIKey: apiKey,
+		Client: &http.Client{},
+	}
+}
+
 func (m *MetabaseAPIClient) request(ctx context.Context, path string, body any, method string) (*http.Response, error) {
 	var bodyReader io.Reader
 	if body != nil {
