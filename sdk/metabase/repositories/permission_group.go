@@ -48,7 +48,7 @@ func (r *PermissionGroupRepository) Get(ctx context.Context, id int) (*models.Pe
 }
 
 func (r *PermissionGroupRepository) Update(ctx context.Context, id int, name string) (bool, error) {
-	path := fmt.Sprintf("/api/permissions/group/%s", id)
+	path := fmt.Sprintf("/api/permissions/group/%d", id)
 	body := map[string]string{"name": name}
 
 	resp, err := r.client.Put(ctx, path, body)
