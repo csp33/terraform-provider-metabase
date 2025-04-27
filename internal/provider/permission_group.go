@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
-	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models"
+	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/terraform"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/repositories"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -77,56 +77,72 @@ func (r *PermissionGroup) Configure(ctx context.Context, req resource.ConfigureR
 }
 
 func (r *PermissionGroup) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data models.PermissionGroup
+	var data terraform.PermissionGroupTerraformModel
 
-	// Read Terraform plan data into the model
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
-	createResponse, err := r.repository.Create(ctx, data.Name)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	createResponse, err := r.repository.Create(ctx, data.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Create Error", fmt.Sprintf("Unable to create permission group: %s", err))
 		return
 	}
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &createResponse)...)
+	result := terraform.CreatePermissionGroupTerraformModelFromDTO(createResponse)
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
 }
 
 func (r *PermissionGroup) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data models.PermissionGroup
+	var data terraform.PermissionGroupTerraformModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	getResponse, err := r.repository.Get(ctx, data.Id)
+	getResponse, err := r.repository.Get(ctx, data.Id.ValueInt32())
 
 	if err != nil {
 		resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get permission group: %s", err))
 		return
 	}
+	result := terraform.CreatePermissionGroupTerraformModelFromDTO(getResponse)
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &getResponse)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
 }
 
 func (r *PermissionGroup) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data models.PermissionGroup
+	var data terraform.PermissionGroupTerraformModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
 
-	_, err := r.repository.Update(ctx, data.Id, data.Name)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	_, err := r.repository.Update(ctx, data.Id.ValueInt32(), data.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update permission group: %s", err))
 		return
 	}
 
+	// The new state is not read from the API
+
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }
 
 func (r *PermissionGroup) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data models.PermissionGroup
+	var data terraform.PermissionGroupTerraformModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
 
-	err := r.repository.Delete(ctx, data.Id)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	err := r.repository.Delete(ctx, data.Id.ValueInt32())
 	if err != nil {
 		resp.Diagnostics.AddError("Delete Error", fmt.Sprintf("Unable to delete permission group: %s", err))
 		return
