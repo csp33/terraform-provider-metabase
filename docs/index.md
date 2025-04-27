@@ -27,4 +27,3 @@ provider "metabase" {
 
 - `api_key` (String) Metabase API Key
 - `host` (String) Metabase API host URL
-- `port` (Number) Metabase API host port
