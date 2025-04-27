@@ -91,7 +91,9 @@ func (p *MetabaseProvider) Configure(ctx context.Context, req provider.Configure
 }
 
 func (p *MetabaseProvider) Resources(ctx context.Context) []func() resource.Resource {
-	return []func() resource.Resource{}
+	return []func() resource.Resource{
+		NewPermissionGroup,
+	}
 }
 
 func (p *MetabaseProvider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
