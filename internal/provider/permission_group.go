@@ -104,7 +104,7 @@ func (r *PermissionGroup) Read(ctx context.Context, req resource.ReadRequest, re
 		return
 	}
 
-	getResponse, err := r.repository.Get(ctx, data.Id.ValueInt32())
+	getResponse, err := r.repository.Get(ctx, data.Id.ValueString())
 
 	if err != nil {
 		resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get permission group: %s", err))
@@ -123,7 +123,7 @@ func (r *PermissionGroup) Update(ctx context.Context, req resource.UpdateRequest
 		return
 	}
 
-	_, err := r.repository.Update(ctx, data.Id.ValueInt32(), data.Name.ValueString())
+	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.Name.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update permission group: %s", err))
 		return
@@ -142,7 +142,7 @@ func (r *PermissionGroup) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	err := r.repository.Delete(ctx, data.Id.ValueInt32())
+	err := r.repository.Delete(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Delete Error", fmt.Sprintf("Unable to delete permission group: %s", err))
 		return

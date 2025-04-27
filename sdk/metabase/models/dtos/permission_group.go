@@ -4,6 +4,6 @@
 package dtos
 
 type PermissionGroupDTO struct {
-	Id   int    `json:"id"`
+	Id   string `json:"id"`
 	Name string `json:"name"`
 }

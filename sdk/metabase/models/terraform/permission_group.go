@@ -9,14 +9,14 @@ import (
 )
 
 type PermissionGroupTerraformModel struct {
+	Id   types.String `tfsdk:"id"`
 	Name types.String `tfsdk:"name"`
-	Id   types.Int32  `tfsdk:"id"`
 }
 
 func CreatePermissionGroupTerraformModelFromDTO(source *dtos.PermissionGroupDTO) PermissionGroupTerraformModel {
 	return PermissionGroupTerraformModel{
+		Id:   types.StringValue(source.Id),
 		Name: types.StringValue(source.Name),
-		Id:   types.Int32Value(int32(source.Id)),
 	}
 
 }

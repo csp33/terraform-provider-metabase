@@ -34,8 +34,8 @@ func (r *PermissionGroupRepository) Create(ctx context.Context, name string) (*d
 	return &res, nil
 }
 
-func (r *PermissionGroupRepository) Get(ctx context.Context, id int32) (*dtos.PermissionGroupDTO, error) {
-	path := fmt.Sprintf("/api/permissions/group/%d", id)
+func (r *PermissionGroupRepository) Get(ctx context.Context, id string) (*dtos.PermissionGroupDTO, error) {
+	path := fmt.Sprintf("/api/permissions/group/%s", id)
 	resp, err := r.client.Get(ctx, path)
 	if err != nil {
 		return nil, err
@@ -49,8 +49,8 @@ func (r *PermissionGroupRepository) Get(ctx context.Context, id int32) (*dtos.Pe
 	return &res, nil
 }
 
-func (r *PermissionGroupRepository) Update(ctx context.Context, id int32, name string) (bool, error) {
-	path := fmt.Sprintf("/api/permissions/group/%d", id)
+func (r *PermissionGroupRepository) Update(ctx context.Context, id string, name string) (bool, error) {
+	path := fmt.Sprintf("/api/permissions/group/%s", id)
 	body := map[string]string{"name": name}
 
 	resp, err := r.client.Put(ctx, path, body)
@@ -62,8 +62,8 @@ func (r *PermissionGroupRepository) Update(ctx context.Context, id int32, name s
 	return true, nil
 }
 
-func (r *PermissionGroupRepository) Delete(ctx context.Context, id int32) error {
-	path := fmt.Sprintf("/api/permissions/group/%d", id)
+func (r *PermissionGroupRepository) Delete(ctx context.Context, id string) error {
+	path := fmt.Sprintf("/api/permissions/group/%s", id)
 	resp, err := r.client.Delete(ctx, path)
 	if err != nil {
 		return err
