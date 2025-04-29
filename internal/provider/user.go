@@ -138,13 +138,22 @@ func (r *User) Read(ctx context.Context, req resource.ReadRequest, resp *resourc
 
 func (r *User) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	var plan terraform.UserTerraformModel
+	var state terraform.UserTerraformModel
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+
+	var isActive *bool
+	if plan.IsActive.ValueBool() == state.IsActive.ValueBool() {
+		isActive = nil
+	} else {
+		isActive = plan.IsActive.ValueBoolPointer()
+	}
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	_, err := r.repository.Update(ctx, plan.Id.ValueString(), plan.FirstName.ValueStringPointer(), plan.LastName.ValueStringPointer(), plan.IsActive.ValueBoolPointer())
+	_, err := r.repository.Update(ctx, plan.Id.ValueString(), plan.FirstName.ValueStringPointer(), plan.LastName.ValueStringPointer(), isActive)
 	if err != nil {
 		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update user: %s", err))
 		return
