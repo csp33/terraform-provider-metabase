@@ -18,8 +18,8 @@ type UserPermissionGroupMembershipTerraformModel struct {
 func CreateUserPermissionGroupMembershipTerraformModelFromDTO(source *dtos.UserPermissionGroupMembershipDTO) UserPermissionGroupMembershipTerraformModel {
 	return UserPermissionGroupMembershipTerraformModel{
 		Id:                types.StringValue(strconv.Itoa(source.MembershipId)),
-		UserId:            types.StringValue(source.UserId),
-		PermissionGroupId: types.StringValue(source.GroupId),
+		UserId:            types.StringValue(strconv.Itoa(source.UserId)),
+		PermissionGroupId: types.StringValue(strconv.Itoa(source.GroupId)),
 	}
 
 }

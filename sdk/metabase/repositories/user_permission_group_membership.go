@@ -34,7 +34,7 @@ func (r *UserPermissionGroupMembershipRepository) Create(ctx context.Context, us
 	}
 
 	for _, m := range res {
-		if m.UserId == userId && m.GroupId == groupId {
+		if strconv.Itoa(m.UserId) == userId && strconv.Itoa(m.GroupId) == groupId {
 			return &m, nil
 		}
 	}
