@@ -93,7 +93,7 @@ func (r *Collection) Create(ctx context.Context, req resource.CreateRequest, res
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	if data.Archived.ValueBool() == true {
+	if data.Archived.ValueBool() {
 		resp.Diagnostics.AddError("Invalid value", "A collection can't be created with archived=true")
 		return
 	}
