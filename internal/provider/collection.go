@@ -9,7 +9,6 @@ import (
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/terraform"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/repositories"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -17,140 +16,112 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 )
 
-// Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &Collection{}
-var _ resource.ResourceWithImportState = &Collection{}
-
 func NewCollection() resource.Resource {
-	return &Collection{}
+	collection := &Collection{}
+
+	baseResource := &BaseResource{
+		TypeName: "collection",
+		ConfigureRepository: func(client *metabase.MetabaseAPIClient) {
+			collection.repository = repositories.NewCollectionRepository(client)
+		},
+		GetSchema: func(ctx context.Context) schema.Schema {
+			return schema.Schema{
+				MarkdownDescription: "In Metabase, a collection is a set of items — questions, models, dashboards, and subcollections — that are stored together for some organizational purpose. You can think of collections like folders within a file system.",
+				Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
+						Computed:            true,
+						MarkdownDescription: "Collection ID",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"name": schema.StringAttribute{
+						MarkdownDescription: "Name of the collection",
+						Required:            true,
+					},
+					"parent_id": schema.StringAttribute{
+						MarkdownDescription: "ID of the parent collection",
+						Optional:            true,
+					},
+					"archived": schema.BoolAttribute{
+						MarkdownDescription: "Whether the collection is archived. Archived collections are not visible in the UI. Collections can be archived, but not deleted.",
+						Optional:            true,
+						Computed:            true,
+						Default:             booldefault.StaticBool(false),
+					},
+				},
+			}
+		},
+		CreateFunc: func(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+			var plan terraform.CollectionTerraformModel
+
+			resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+
+			if resp.Diagnostics.HasError() {
+				return
+			}
+			if plan.Archived.ValueBool() {
+				resp.Diagnostics.AddError("Invalid value", "A collection can't be created with archived=true")
+				return
+			}
+
+			createResponse, err := collection.repository.Create(ctx, plan.Name.ValueString(), plan.ParentId.ValueStringPointer(), plan.Archived.ValueBoolPointer())
+			if err != nil {
+				resp.Diagnostics.AddError("Create Error", fmt.Sprintf("Unable to create collection: %s", err))
+				return
+			}
+
+			result := terraform.CreateCollectionTerraformModelFromDTO(createResponse)
+			resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
+		},
+		ReadFunc: func(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+			var plan terraform.CollectionTerraformModel
+			resp.Diagnostics.Append(req.State.Get(ctx, &plan)...)
+
+			if resp.Diagnostics.HasError() {
+				return
+			}
+
+			getResponse, err := collection.repository.Get(ctx, plan.Id.ValueString())
+
+			if err != nil {
+				resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get collection: %s", err))
+				return
+			}
+			result := terraform.CreateCollectionTerraformModelFromDTO(getResponse)
+
+			resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
+		},
+		UpdateFunc: func(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+			var plan terraform.CollectionTerraformModel
+			resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+
+			if resp.Diagnostics.HasError() {
+				return
+			}
+
+			_, err := collection.repository.Update(ctx, plan.Id.ValueString(), plan.Name.ValueStringPointer(), plan.ParentId.ValueStringPointer(), plan.Archived.ValueBoolPointer())
+			if err != nil {
+				resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update collection: %s", err))
+				return
+			}
+
+			// The new state is not read from the API
+
+			resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		},
+		DeleteFunc: func(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+			resp.Diagnostics.AddError("Can't delete", "Collections can't be updated, set archived=true instead")
+		},
+	}
+
+	collection.BaseResource = baseResource
+
+	return collection
 }
 
 // Collection defines the resource implementation.
 type Collection struct {
+	*BaseResource
 	repository *repositories.CollectionRepository
-}
-
-func (r *Collection) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_collection"
-}
-
-func (r *Collection) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
-		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "collection",
-
-		Attributes: map[string]schema.Attribute{
-			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of the collection",
-				Required:            true,
-			},
-			"id": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "Collection ID",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"parent_id": schema.StringAttribute{
-				MarkdownDescription: "ID of the parent collection",
-				Optional:            true,
-			},
-			"archived": schema.BoolAttribute{
-				MarkdownDescription: "Whether the collection is archived",
-				Optional:            true,
-				Computed:            true,
-				Default:             booldefault.StaticBool(false),
-			},
-		},
-	}
-}
-
-func (r *Collection) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Prevent panic if the provider has not been configured.
-	if req.ProviderData == nil {
-		return
-	}
-
-	client, ok := req.ProviderData.(*metabase.MetabaseAPIClient)
-
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *metabase.MetabaseAPIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-
-		return
-	}
-
-	r.repository = repositories.NewCollectionRepository(client)
-}
-
-func (r *Collection) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data terraform.CollectionTerraformModel
-
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-	if data.Archived.ValueBool() {
-		resp.Diagnostics.AddError("Invalid value", "A collection can't be created with archived=true")
-		return
-	}
-
-	createResponse, err := r.repository.Create(ctx, data.Name.ValueString(), data.ParentId.ValueStringPointer(), data.Archived.ValueBoolPointer())
-	if err != nil {
-		resp.Diagnostics.AddError("Create Error", fmt.Sprintf("Unable to create collection: %s", err))
-		return
-	}
-
-	result := terraform.CreateCollectionTerraformModelFromDTO(createResponse)
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
-}
-
-func (r *Collection) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data terraform.CollectionTerraformModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	getResponse, err := r.repository.Get(ctx, data.Id.ValueString())
-
-	if err != nil {
-		resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get collection: %s", err))
-		return
-	}
-	result := terraform.CreateCollectionTerraformModelFromDTO(getResponse)
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
-}
-
-func (r *Collection) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data terraform.CollectionTerraformModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.Name.ValueStringPointer(), data.ParentId.ValueStringPointer(), data.Archived.ValueBoolPointer())
-	if err != nil {
-		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update collection: %s", err))
-		return
-	}
-
-	// The new state is not read from the API
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-func (r *Collection) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	resp.Diagnostics.AddError("Can't delete", "Collections can't be updated, set archived=true instead")
-}
-
-func (r *Collection) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

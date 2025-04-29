@@ -9,144 +9,114 @@ import (
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/terraform"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/repositories"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 )
 
-// Ensure provider defined types fully satisfy framework interfaces.
-var _ resource.Resource = &PermissionGroup{}
-var _ resource.ResourceWithImportState = &PermissionGroup{}
-
 func NewPermissionGroup() resource.Resource {
-	return &PermissionGroup{}
+	permissionGroup := &PermissionGroup{}
+
+	baseResource := &BaseResource{
+		TypeName: "permission_group",
+		ConfigureRepository: func(client *metabase.MetabaseAPIClient) {
+			permissionGroup.repository = repositories.NewPermissionGroupRepository(client)
+		},
+		GetSchema: func(ctx context.Context) schema.Schema {
+			return schema.Schema{
+				MarkdownDescription: "A group to which users can be added for simplified permission management. A user can belong to multiple groups.",
+				Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
+						Computed:            true,
+						MarkdownDescription: "ID of the group",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"name": schema.StringAttribute{
+						MarkdownDescription: "Name of the group",
+						Required:            true,
+					},
+				},
+			}
+		},
+		CreateFunc: func(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+			var plan terraform.PermissionGroupTerraformModel
+
+			resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+
+			if resp.Diagnostics.HasError() {
+				return
+			}
+
+			createResponse, err := permissionGroup.repository.Create(ctx, plan.Name.ValueString())
+			if err != nil {
+				resp.Diagnostics.AddError("Create Error", fmt.Sprintf("Unable to create permission group: %s", err))
+				return
+			}
+
+			result := terraform.CreatePermissionGroupTerraformModelFromDTO(createResponse)
+
+			resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
+		},
+		ReadFunc: func(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
+			var plan terraform.PermissionGroupTerraformModel
+			resp.Diagnostics.Append(req.State.Get(ctx, &plan)...)
+
+			if resp.Diagnostics.HasError() {
+				return
+			}
+
+			getResponse, err := permissionGroup.repository.Get(ctx, plan.Id.ValueString())
+
+			if err != nil {
+				resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get permission group: %s", err))
+				return
+			}
+			result := terraform.CreatePermissionGroupTerraformModelFromDTO(getResponse)
+
+			resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
+		},
+		UpdateFunc: func(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+			var plan terraform.PermissionGroupTerraformModel
+			resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+
+			if resp.Diagnostics.HasError() {
+				return
+			}
+
+			_, err := permissionGroup.repository.Update(ctx, plan.Id.ValueString(), plan.Name.ValueString())
+			if err != nil {
+				resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update permission group: %s", err))
+				return
+			}
+
+			resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+		},
+		DeleteFunc: func(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+			var plan terraform.PermissionGroupTerraformModel
+			resp.Diagnostics.Append(req.State.Get(ctx, &plan)...)
+
+			if resp.Diagnostics.HasError() {
+				return
+			}
+
+			err := permissionGroup.repository.Delete(ctx, plan.Id.ValueString())
+			if err != nil {
+				resp.Diagnostics.AddError("Delete Error", fmt.Sprintf("Unable to delete permission group: %s", err))
+				return
+			}
+		},
+	}
+
+	permissionGroup.BaseResource = baseResource
+
+	return permissionGroup
 }
 
 // PermissionGroup defines the resource implementation.
 type PermissionGroup struct {
+	*BaseResource
 	repository *repositories.PermissionGroupRepository
-}
-
-func (r *PermissionGroup) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_permission_group"
-}
-
-func (r *PermissionGroup) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
-		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Permission Group",
-
-		Attributes: map[string]schema.Attribute{
-			"name": schema.StringAttribute{
-				MarkdownDescription: "Name of the group",
-				Required:            true,
-			},
-			"id": schema.StringAttribute{
-				Computed:            true,
-				MarkdownDescription: "Group ID",
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-		},
-	}
-}
-
-func (r *PermissionGroup) Configure(ctx context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
-	// Prevent panic if the provider has not been configured.
-	if req.ProviderData == nil {
-		return
-	}
-
-	client, ok := req.ProviderData.(*metabase.MetabaseAPIClient)
-
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Resource Configure Type",
-			fmt.Sprintf("Expected *metabase.MetabaseAPIClient, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-
-		return
-	}
-
-	r.repository = repositories.NewPermissionGroupRepository(client)
-}
-
-func (r *PermissionGroup) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	var data terraform.PermissionGroupTerraformModel
-
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	createResponse, err := r.repository.Create(ctx, data.Name.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Create Error", fmt.Sprintf("Unable to create permission group: %s", err))
-		return
-	}
-
-	result := terraform.CreatePermissionGroupTerraformModelFromDTO(createResponse)
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
-}
-
-func (r *PermissionGroup) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	var data terraform.PermissionGroupTerraformModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	getResponse, err := r.repository.Get(ctx, data.Id.ValueString())
-
-	if err != nil {
-		resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get permission group: %s", err))
-		return
-	}
-	result := terraform.CreatePermissionGroupTerraformModelFromDTO(getResponse)
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
-}
-
-func (r *PermissionGroup) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data terraform.PermissionGroupTerraformModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.Name.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update permission group: %s", err))
-		return
-	}
-
-	// The new state is not read from the API
-
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
-}
-
-func (r *PermissionGroup) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data terraform.PermissionGroupTerraformModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	err := r.repository.Delete(ctx, data.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Delete Error", fmt.Sprintf("Unable to delete permission group: %s", err))
-		return
-	}
-}
-
-func (r *PermissionGroup) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
