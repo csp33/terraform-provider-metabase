@@ -21,6 +21,7 @@ collection
 
 ### Optional
 
+- `archived` (Boolean) Whether the collection is archived
 - `parent_id` (String) ID of the parent collection
 
 ### Read-Only

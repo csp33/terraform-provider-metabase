@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 )
@@ -60,7 +59,6 @@ func (r *Collection) Schema(ctx context.Context, req resource.SchemaRequest, res
 			"archived": schema.BoolAttribute{
 				MarkdownDescription: "Whether the collection is archived",
 				Optional:            true,
-				Default:             booldefault.StaticBool(false),
 			},
 		},
 	}
@@ -95,7 +93,7 @@ func (r *Collection) Create(ctx context.Context, req resource.CreateRequest, res
 		return
 	}
 
-	createResponse, err := r.repository.Create(ctx, data.Name.ValueString(), data.ParentId.ValueStringPointer(), data.Archived.ValueBool())
+	createResponse, err := r.repository.Create(ctx, data.Name.ValueString(), data.ParentId.ValueStringPointer(), data.Archived.ValueBoolPointer())
 	if err != nil {
 		resp.Diagnostics.AddError("Create Error", fmt.Sprintf("Unable to create collection: %s", err))
 		return
@@ -133,7 +131,7 @@ func (r *Collection) Update(ctx context.Context, req resource.UpdateRequest, res
 		return
 	}
 
-	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.Name.ValueStringPointer(), data.ParentId.ValueStringPointer(), data.Archived.ValueBool())
+	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.Name.ValueStringPointer(), data.ParentId.ValueStringPointer(), data.Archived.ValueBoolPointer())
 	if err != nil {
 		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update collection: %s", err))
 		return

@@ -19,10 +19,15 @@ func NewCollectionRepository(client *metabase.MetabaseAPIClient) *CollectionRepo
 	return &CollectionRepository{client: client}
 }
 
-func (r *CollectionRepository) Create(ctx context.Context, name string, parentId *string, archived bool) (*dtos.CollectionDTO, error) {
-	body := map[string]string{"name": name, "archived": fmt.Sprintf("%t", archived)}
+func (r *CollectionRepository) Create(ctx context.Context, name string, parentId *string, archived *bool) (*dtos.CollectionDTO, error) {
+	body := map[string]any{"name": name}
 	if parentId != nil {
 		body["parent_id"] = *parentId
+	}
+	if archived != nil {
+		body["archived"] = *archived
+	} else {
+		body["archived"] = false
 	}
 
 	resp, err := r.client.Post(ctx, "/api/collection", body)
@@ -53,7 +58,7 @@ func (r *CollectionRepository) Get(ctx context.Context, id string) (*dtos.Collec
 	return &res, nil
 }
 
-func (r *CollectionRepository) Update(ctx context.Context, id string, name *string, parentId *string, archived bool) (bool, error) {
+func (r *CollectionRepository) Update(ctx context.Context, id string, name *string, parentId *string, archived *bool) (bool, error) {
 	path := fmt.Sprintf("/api/collection/%s", id)
 	body := map[string]any{"archived": archived}
 	if name != nil {
@@ -64,6 +69,12 @@ func (r *CollectionRepository) Update(ctx context.Context, id string, name *stri
 		body["parent_id"] = *parentId
 	} else {
 		body["parent_id"] = nil
+	}
+
+	if archived != nil {
+		body["archived"] = *archived
+	} else {
+		body["archived"] = false
 	}
 
 	resp, err := r.client.Put(ctx, path, body)
