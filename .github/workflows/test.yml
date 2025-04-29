@@ -95,7 +95,7 @@ jobs:
           API_KEY=$(./tools/init-metabase.sh)
           echo "METABASE_API_KEY=$API_KEY" >> $GITHUB_ENV
       - name: Display API Key
-        run:
+        run: |
           echo "Metabase API Key: ${{ env.METABASE_API_KEY }}"
       - run: go mod download
       - name: Run acceptance tests
