@@ -54,6 +54,14 @@ func (r *User) Schema(ctx context.Context, req resource.SchemaRequest, resp *res
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"first_name": schema.StringAttribute{
+				MarkdownDescription: "First name of the user",
+				Required:            true,
+			},
+			"last_name": schema.StringAttribute{
+				MarkdownDescription: "Last name of the user",
+				Required:            true,
+			},
 			"is_active": schema.BoolAttribute{
 				MarkdownDescription: "Whether the user is active",
 				Optional:            true,
@@ -98,7 +106,7 @@ func (r *User) Create(ctx context.Context, req resource.CreateRequest, resp *res
 		return
 	}
 
-	createResponse, err := r.repository.Create(ctx, data.Email.ValueString())
+	createResponse, err := r.repository.Create(ctx, data.Email.ValueString(), data.FirstName.ValueString(), data.LastName.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Create Error", fmt.Sprintf("Unable to create User: %s", err))
 		return
@@ -136,7 +144,7 @@ func (r *User) Update(ctx context.Context, req resource.UpdateRequest, resp *res
 		return
 	}
 
-	_, err := r.repository.Update(ctx, plan.Id.ValueString(), plan.IsActive.ValueBool())
+	_, err := r.repository.Update(ctx, plan.Id.ValueString(), plan.FirstName.ValueStringPointer(), plan.LastName.ValueStringPointer(), plan.IsActive.ValueBoolPointer())
 	if err != nil {
 		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update user: %s", err))
 		return

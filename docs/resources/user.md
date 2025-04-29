@@ -18,6 +18,8 @@ User
 ### Required
 
 - `email` (String) Email of the user
+- `first_name` (String) First name of the user
+- `last_name` (String) Last name of the user
 
 ### Optional
 
