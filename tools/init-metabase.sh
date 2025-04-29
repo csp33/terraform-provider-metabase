@@ -76,6 +76,8 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+echo "API Key creation response: $api_key_response"
+
 api_key=$(echo "$api_key_response" | jq -r '.unmasked_key')
 
 if [ -z "$api_key" ]; then
@@ -83,6 +85,8 @@ if [ -z "$api_key" ]; then
   echo "API Key creation response: $api_key_response"
   exit 1
 fi
+
+echo "API Key created successfully: $api_key."
 
 
 echo "$unmasked_key" > api_key.txt
