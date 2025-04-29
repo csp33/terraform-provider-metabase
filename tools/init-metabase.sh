@@ -76,7 +76,6 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "API Key creation response: $api_key_response"
 
 api_key=$(echo "$api_key_response" | jq -r '.unmasked_key')
 
