@@ -127,7 +127,7 @@ func (r *Collection) Update(ctx context.Context, req resource.UpdateRequest, res
 		return
 	}
 
-	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.Name.ValueStringPointer(), data.ParentId.ValueStringPointer())
+	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.Name.ValueStringPointer(), data.ParentId.ValueStringPointer(), data.Archived.ValueBool())
 	if err != nil {
 		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update collection: %s", err))
 		return
@@ -139,18 +139,7 @@ func (r *Collection) Update(ctx context.Context, req resource.UpdateRequest, res
 }
 
 func (r *Collection) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	var data terraform.CollectionTerraformModel
-	resp.Diagnostics.Append(req.State.Get(ctx, &data)...)
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	err := r.repository.Delete(ctx, data.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Delete Error", fmt.Sprintf("Unable to delete collection: %s", err))
-		return
-	}
+	resp.Diagnostics.AddError("Can't delete", "Collections can't be updated, set archived=true instead")
 }
 
 func (r *Collection) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

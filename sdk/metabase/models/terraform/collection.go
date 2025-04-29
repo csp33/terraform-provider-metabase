@@ -13,6 +13,7 @@ type CollectionTerraformModel struct {
 	Id       types.String `tfsdk:"id"`
 	Name     types.String `tfsdk:"name"`
 	ParentId types.String `tfsdk:"parent_id"`
+	Archived types.Bool   `tfsdk:"archived"`
 }
 
 func CreateCollectionTerraformModelFromDTO(source *dtos.CollectionDTO) CollectionTerraformModel {
@@ -26,6 +27,7 @@ func CreateCollectionTerraformModelFromDTO(source *dtos.CollectionDTO) Collectio
 		Id:       types.StringValue(strconv.Itoa(source.Id)),
 		Name:     types.StringValue(source.Name),
 		ParentId: parentId,
+		Archived: types.BoolValue(source.Archived),
 	}
 
 }

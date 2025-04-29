@@ -53,9 +53,9 @@ func (r *CollectionRepository) Get(ctx context.Context, id string) (*dtos.Collec
 	return &res, nil
 }
 
-func (r *CollectionRepository) Update(ctx context.Context, id string, name *string, parentId *string) (bool, error) {
+func (r *CollectionRepository) Update(ctx context.Context, id string, name *string, parentId *string, archived bool) (bool, error) {
 	path := fmt.Sprintf("/api/collection/%s", id)
-	body := map[string]any{}
+	body := map[string]any{"archived": archived}
 	if name != nil {
 		body["name"] = *name
 	}
@@ -73,19 +73,4 @@ func (r *CollectionRepository) Update(ctx context.Context, id string, name *stri
 	defer resp.Body.Close()
 
 	return true, nil
-}
-
-func (r *CollectionRepository) Delete(ctx context.Context, id string) error {
-	// Collections can't be deleted, they must be archived instead
-
-	path := fmt.Sprintf("/api/collection/%s", id)
-	body := map[string]string{"archived": "true"}
-
-	resp, err := r.client.Put(ctx, path, body)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	return nil
 }
