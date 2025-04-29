@@ -5,10 +5,17 @@ package provider
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
+
+func getGroupName() string {
+	return fmt.Sprintf("Test group %d", rand.Int())
+}
+
+var groupName = getGroupName()
 
 func TestAccPermissionGroupResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -17,9 +24,9 @@ func TestAccPermissionGroupResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccPermissionGroupResourceConfig("test-group"),
+				Config: testAccPermissionGroupResourceConfig(groupName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("metabase_permission_group.test", "name", "test-group"),
+					resource.TestCheckResourceAttr("metabase_permission_group.test", "name", groupName),
 					resource.TestCheckResourceAttrSet("metabase_permission_group.test", "id"),
 				),
 			},

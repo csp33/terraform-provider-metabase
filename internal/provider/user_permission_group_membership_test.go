@@ -4,6 +4,7 @@
 package provider
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -41,9 +42,9 @@ func TestAccUserPermissionGroupMembershipResource(t *testing.T) {
 }
 
 func testAccUserPermissionGroupMembershipResourceConfig() string {
-	return testAccProviderConfig() + `
+	return testAccProviderConfig() + fmt.Sprintf(`
 resource "metabase_user" "test" {
-  email      = "membership-test-user@example.com"
+  email      = "%s"
   first_name = "Membership"
   last_name  = "Test"
 }
@@ -56,5 +57,5 @@ resource "metabase_user_permission_group_membership" "test" {
   user_id             = metabase_user.test.id
   permission_group_id = metabase_permission_group.test.id
 }
-`
+`, getUserEmail())
 }

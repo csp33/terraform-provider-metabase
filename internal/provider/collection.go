@@ -111,7 +111,19 @@ func NewCollection() resource.Resource {
 			resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 		},
 		DeleteFunc: func(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-			resp.Diagnostics.AddError("Can't delete", "Collections cannot be deleted, set archived=true instead")
+			var state terraform.CollectionTerraformModel
+			resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+
+			if resp.Diagnostics.HasError() {
+				return
+			}
+
+			archived := true
+			_, err := collection.repository.Update(ctx, state.Id.ValueString(), nil, nil, &archived)
+			if err != nil {
+				resp.Diagnostics.AddError("Archive Error", fmt.Sprintf("Unable to archive collection: %s", err))
+				return
+			}
 		},
 	}
 

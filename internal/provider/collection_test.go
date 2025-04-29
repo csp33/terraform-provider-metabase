@@ -5,10 +5,17 @@ package provider
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
+
+func getCollectionName() string {
+	return fmt.Sprintf("Test collection %d", rand.Int())
+}
+
+var collectionName = getCollectionName()
 
 func TestAccCollectionResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -17,9 +24,9 @@ func TestAccCollectionResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccCollectionResourceConfig("test-collection"),
+				Config: testAccCollectionResourceConfig(collectionName),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("metabase_collection.test", "name", "test-collection"),
+					resource.TestCheckResourceAttr("metabase_collection.test", "name", collectionName),
 					resource.TestCheckResourceAttr("metabase_collection.test", "archived", "false"),
 					resource.TestCheckResourceAttrSet("metabase_collection.test", "id"),
 				),

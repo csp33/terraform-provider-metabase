@@ -5,10 +5,17 @@ package provider
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
+
+func getUserEmail() string {
+	return fmt.Sprintf("test%d@test.com", rand.Int())
+}
+
+var email = getUserEmail()
 
 func TestAccUserResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -17,9 +24,9 @@ func TestAccUserResource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccUserResourceConfig("test-user@example.com", "Test", "User"),
+				Config: testAccUserResourceConfig(email, "Test", "User"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("metabase_user.test", "email", "test-user@example.com"),
+					resource.TestCheckResourceAttr("metabase_user.test", "email", email),
 					resource.TestCheckResourceAttr("metabase_user.test", "first_name", "Test"),
 					resource.TestCheckResourceAttr("metabase_user.test", "last_name", "User"),
 					resource.TestCheckResourceAttr("metabase_user.test", "is_active", "true"),
@@ -34,14 +41,14 @@ func TestAccUserResource(t *testing.T) {
 			},
 			// Update and Read testing
 			{
-				Config: testAccUserResourceConfig("test-user@example.com", "Updated", "User"),
+				Config: testAccUserResourceConfig(email, "Updated", "User"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("metabase_user.test", "first_name", "Updated"),
 				),
 			},
 			// Deactivate testing
 			{
-				Config: testAccUserResourceConfigDeactivated("test-user@example.com", "Updated", "User"),
+				Config: testAccUserResourceConfigDeactivated(email, "Updated", "User"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("metabase_user.test", "is_active", "false"),
 				),
