@@ -77,6 +77,7 @@ jobs:
       - name: Start Metabase and PostgreSQL with Docker Compose
         run: docker compose -f tools/docker-compose.yml up -d
       - name: Run Metabase API Key setup script
+        timeout-minutes: 10
         run: |
           chmod +x ./tools/init-metabase.sh
           API_KEY=$(./tools/init-metabase.sh)
