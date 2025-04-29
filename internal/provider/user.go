@@ -148,7 +148,7 @@ func (r *User) Update(ctx context.Context, req resource.UpdateRequest, resp *res
 }
 
 func (r *User) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	resp.Diagnostics.AddError("Can't delete", "Users can't be updated, set is_active=false instead")
+	resp.Diagnostics.AddError("Can't delete", "Users can't be deleted, set is_active=false instead")
 }
 
 func (r *User) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
