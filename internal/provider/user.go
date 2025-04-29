@@ -129,22 +129,22 @@ func (r *User) Read(ctx context.Context, req resource.ReadRequest, resp *resourc
 }
 
 func (r *User) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	var data terraform.UserTerraformModel
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &data)...)
+	var plan terraform.UserTerraformModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.IsActive.ValueBool())
+	_, err := r.repository.Update(ctx, plan.Id.ValueString(), plan.IsActive.ValueBool())
 	if err != nil {
-		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update User: %s", err))
+		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update user: %s", err))
 		return
 	}
 
 	// The new state is not read from the API
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
 func (r *User) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {

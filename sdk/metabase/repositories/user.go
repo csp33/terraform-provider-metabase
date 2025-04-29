@@ -50,9 +50,21 @@ func (r *UserRepository) Get(ctx context.Context, id string) (*dtos.UserDTO, err
 	return &res, nil
 }
 
-func (r *UserRepository) Update(ctx context.Context, id string, isActive bool) (bool, error) {
+func (r *UserRepository) deactivate(ctx context.Context, id string) (bool, error) {
 	path := fmt.Sprintf("/api/user/%s", id)
-	body := map[string]any{"is_active": isActive}
+
+	resp, err := r.client.Delete(ctx, path)
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	return true, nil
+}
+
+func (r *UserRepository) reactivate(ctx context.Context, id string) (bool, error) {
+	path := fmt.Sprintf("/api/user/%s/reactivate", id)
+	body := map[string]any{}
 
 	resp, err := r.client.Put(ctx, path, body)
 	if err != nil {
@@ -61,4 +73,12 @@ func (r *UserRepository) Update(ctx context.Context, id string, isActive bool) (
 	defer resp.Body.Close()
 
 	return true, nil
+}
+
+func (r *UserRepository) Update(ctx context.Context, id string, isActive bool) (bool, error) {
+	if !isActive {
+		return r.deactivate(ctx, id)
+	} else {
+		return r.reactivate(ctx, id)
+	}
 }
