@@ -29,8 +29,6 @@ type PermissionGroup struct {
 	repository *repositories.PermissionGroupRepository
 }
 
-// PermissionGroupModel describes the resource data model.
-
 func (r *PermissionGroup) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_permission_group"
 }

@@ -29,8 +29,6 @@ type Collection struct {
 	repository *repositories.CollectionRepository
 }
 
-// CollectionModel describes the resource data model.
-
 func (r *Collection) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_collection"
 }
