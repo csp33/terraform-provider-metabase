@@ -65,7 +65,7 @@ echo "Creating the API Key..."
 api_key_response=$(curl -XPOST 'http://localhost:3000/api/api-key' \
   --header "X-Metabase-Session: $session_token" \
   --header 'Content-Type: application/json' \
-  --data '{
+  --data-raw '{
     "group_id": 2,
     "name": "API Key 2"
   }' -s)
