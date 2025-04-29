@@ -89,4 +89,4 @@ fi
 echo "API Key created successfully: $api_key."
 
 
-echo "$unmasked_key" > api_key.txt
+echo "$api_key" > api_key.txt
