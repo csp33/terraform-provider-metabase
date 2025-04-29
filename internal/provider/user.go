@@ -129,7 +129,19 @@ func NewUser() resource.Resource {
 			resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 		},
 		DeleteFunc: func(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-			resp.Diagnostics.AddError("Can't delete", "Users can't be deleted, set is_active=false instead")
+			var state terraform.UserTerraformModel
+			resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+
+			if resp.Diagnostics.HasError() {
+				return
+			}
+
+			isActive := false
+			_, err := user.repository.Update(ctx, state.Id.ValueString(), nil, nil, &isActive)
+			if err != nil {
+				resp.Diagnostics.AddError("Deactivate Error", fmt.Sprintf("Unable to deactivate user: %s", err))
+				return
+			}
 		},
 	}
 
