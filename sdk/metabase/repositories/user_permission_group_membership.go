@@ -68,7 +68,7 @@ func (r *UserPermissionGroupMembershipRepository) Get(ctx context.Context, id st
 }
 
 func (r *UserPermissionGroupMembershipRepository) Delete(ctx context.Context, id string) error {
-	path := fmt.Sprintf("/api/permissions/group/membership/%s", id)
+	path := fmt.Sprintf("/api/permissions/membership/%s", id)
 	resp, err := r.client.Delete(ctx, path)
 	if err != nil {
 		return err
