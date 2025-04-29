@@ -3,12 +3,12 @@
 page_title: "metabase_permission_group Resource - metabase"
 subcategory: ""
 description: |-
-  Permission Group
+  A group to which users can be added for simplified permission management. A user can belong to multiple groups.
 ---
 
 # metabase_permission_group (Resource)
 
-Permission Group
+A group to which users can be added for simplified permission management. A user can belong to multiple groups.
 
 
 
@@ -21,4 +21,4 @@ Permission Group
 
 ### Read-Only
 
-- `id` (String) Group ID
+- `id` (String) ID of the group

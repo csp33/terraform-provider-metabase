@@ -3,12 +3,12 @@
 page_title: "metabase_user Resource - metabase"
 subcategory: ""
 description: |-
-  User
+  A user represents an individual with access to the Metabase instance. Each user has their own account and can be assigned to one or more permission groups, which determine their level of access to data, features, and administrative functions within Metabase.
 ---
 
 # metabase_user (Resource)
 
-User
+A user represents an individual with access to the Metabase instance. Each user has their own account and can be assigned to one or more permission groups, which determine their level of access to data, features, and administrative functions within Metabase.
 
 
 
@@ -23,7 +23,7 @@ User
 
 ### Optional
 
-- `is_active` (Boolean) Whether the user is active
+- `is_active` (Boolean) Whether the user is active. Users can be deactivated, but not deleted.
 
 ### Read-Only
 

@@ -3,12 +3,12 @@
 page_title: "metabase_collection Resource - metabase"
 subcategory: ""
 description: |-
-  collection
+  In Metabase, a collection is a set of items — questions, models, dashboards, and subcollections — that are stored together for some organizational purpose. You can think of collections like folders within a file system.
 ---
 
 # metabase_collection (Resource)
 
-collection
+In Metabase, a collection is a set of items — questions, models, dashboards, and subcollections — that are stored together for some organizational purpose. You can think of collections like folders within a file system.
 
 
 
@@ -21,7 +21,7 @@ collection
 
 ### Optional
 
-- `archived` (Boolean) Whether the collection is archived
+- `archived` (Boolean) Whether the collection is archived. Archived collections are not visible in the UI. Collections can be archived, but not deleted.
 - `parent_id` (String) ID of the parent collection
 
 ### Read-Only
