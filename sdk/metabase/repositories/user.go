@@ -76,19 +76,6 @@ func (r *UserRepository) reactivate(ctx context.Context, id string) (bool, error
 }
 
 func (r *UserRepository) Update(ctx context.Context, id string, firstName *string, lastName *string, isActive *bool) (bool, error) {
-	if isActive != nil {
-		var err error
-		if !*isActive {
-			_, err = r.deactivate(ctx, id)
-		} else {
-			_, err = r.reactivate(ctx, id)
-		}
-		if err != nil {
-			return false, err
-		}
-
-	}
-
 	if firstName == nil && lastName == nil {
 		return true, nil
 	}
@@ -101,6 +88,18 @@ func (r *UserRepository) Update(ctx context.Context, id string, firstName *strin
 		return false, err
 	}
 	defer resp.Body.Close()
+
+	if isActive != nil {
+		var err error
+		if !*isActive {
+			_, err = r.deactivate(ctx, id)
+		} else {
+			_, err = r.reactivate(ctx, id)
+		}
+		if err != nil {
+			return false, err
+		}
+	}
 
 	return true, nil
 }
