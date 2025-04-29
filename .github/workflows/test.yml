@@ -55,11 +55,9 @@ jobs:
       fail-fast: false
       matrix:
         terraform:
-          - '1.0.*'
-          - '1.1.*'
-          - '1.2.*'
-          - '1.3.*'
-          - '1.4.*'
+          - '1.5.*'
+          - '1.6.*'
+          - '1.7.*'
     env:
       METABASE_API_KEY: "" # Will be set dynamically
       METABASE_HOST: "http://localhost:3000"
