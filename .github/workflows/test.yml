@@ -74,12 +74,8 @@ jobs:
         with:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
-      - name: Set up Docker Compose
-        uses: docker/setup-docker-compose@v3
-        with:
-          compose-file: tools/docker-compose.yml
       - name: Start Metabase and PostgreSQL with Docker Compose
-        run: docker-compose up -d
+        run: docker compose -f tools/docker-compose.yml up -d
       - name: Wait for Metabase to be ready
         run: |
           echo "Waiting for Metabase to be ready..."
@@ -105,4 +101,4 @@ jobs:
         timeout-minutes: 20
       - name: Stop Metabase and PostgreSQL
         if: always()
-        run: docker-compose down
+        run: docker compose -f tools/docker-compose.yml down --volumes
