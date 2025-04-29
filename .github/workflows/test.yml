@@ -46,7 +46,20 @@ jobs:
           git diff --compact-summary --exit-code || \
             (echo; echo "Unexpected difference in directories after code generation. Run 'make generate' command and commit."; exit 1)
 
-  test:
+  unit-tests:
+    name: Terraform Provider Unit Tests
+    needs: [ build, generate ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+      - run: go mod download
+      - run: make test
+  acceptance-tests:
     name: Terraform Provider Acceptance Tests
     needs: [ build, generate ]
     runs-on: ubuntu-latest
