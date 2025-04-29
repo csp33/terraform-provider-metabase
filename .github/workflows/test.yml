@@ -75,12 +75,12 @@ jobs:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
       - name: Start Metabase and PostgreSQL with Docker Compose
-        run: docker compose -f tools/docker-compose.yml up -d
+        run: docker compose -f tools/docker-compose.yml up -d --wait
       - name: Run Metabase API Key setup script
         timeout-minutes: 10
         run: |
           chmod +x ./tools/init-metabase.sh
-          API_KEY=$(./tools/init-metabase.sh)
+          API_KEY=$(./tools/init-metabase.sh 2>&1 >/dev/null)
           echo "METABASE_API_KEY=$API_KEY" >> $GITHUB_ENV
       - name: Display API Key
         run: |
