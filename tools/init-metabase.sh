@@ -85,4 +85,4 @@ if [ -z "$api_key" ]; then
 fi
 
 
-echo $api_key
+echo "$unmasked_key" > api_key.txt
