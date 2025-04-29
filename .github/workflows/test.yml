@@ -80,7 +80,8 @@ jobs:
         timeout-minutes: 10
         run: |
           chmod +x ./tools/init-metabase.sh
-          API_KEY=$(./tools/init-metabase.sh 2>&1 >/dev/null)
+          ./tools/init-metabase.sh
+          API_KEY=$(cat api_key.txt)
           echo "METABASE_API_KEY=$API_KEY" >> $GITHUB_ENV
       - name: Display API Key
         run: |
