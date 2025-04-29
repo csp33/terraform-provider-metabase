@@ -19,8 +19,8 @@ func NewCollectionRepository(client *metabase.MetabaseAPIClient) *CollectionRepo
 	return &CollectionRepository{client: client}
 }
 
-func (r *CollectionRepository) Create(ctx context.Context, name string, parentId *string) (*dtos.CollectionDTO, error) {
-	body := map[string]string{"name": name}
+func (r *CollectionRepository) Create(ctx context.Context, name string, parentId *string, archived bool) (*dtos.CollectionDTO, error) {
+	body := map[string]string{"name": name, "archived": fmt.Sprintf("%t", archived)}
 	if parentId != nil {
 		body["parent_id"] = *parentId
 	}
