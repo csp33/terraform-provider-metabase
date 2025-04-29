@@ -62,7 +62,7 @@ jobs:
           - '1.4.*'
     env:
       METABASE_API_KEY: "" # Will be set dynamically
-      METABASE_HOST: "localhost:3000"
+      METABASE_HOST: "http://localhost:3000"
 
     steps:
       - uses: actions/checkout@v4
