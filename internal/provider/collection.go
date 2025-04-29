@@ -111,7 +111,7 @@ func NewCollection() resource.Resource {
 			resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 		},
 		DeleteFunc: func(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-			resp.Diagnostics.AddError("Can't delete", "Collections can't be updated, set archived=true instead")
+			resp.Diagnostics.AddError("Can't delete", "Collections cannot be deleted, set archived=true instead")
 		},
 	}
 
