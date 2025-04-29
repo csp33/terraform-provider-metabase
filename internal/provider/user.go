@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 )
@@ -30,7 +31,7 @@ type User struct {
 }
 
 func (r *User) Metadata(ctx context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_User"
+	resp.TypeName = req.ProviderTypeName + "_user"
 }
 
 func (r *User) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -48,11 +49,16 @@ func (r *User) Schema(ctx context.Context, req resource.SchemaRequest, resp *res
 			},
 			"email": schema.StringAttribute{
 				MarkdownDescription: "Email of the user",
-				Optional:            true,
+				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"is_active": schema.BoolAttribute{
 				MarkdownDescription: "Whether the user is active",
 				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(true),
 			},
 		},
 	}
@@ -87,7 +93,12 @@ func (r *User) Create(ctx context.Context, req resource.CreateRequest, resp *res
 		return
 	}
 
-	createResponse, err := r.repository.Create(ctx, data.Name.ValueString(), data.ParentId.ValueStringPointer(), data.Archived.ValueBoolPointer())
+	if !data.IsActive.ValueBool() {
+		resp.Diagnostics.AddError("Invalid value", "is_active must be true when creating a user")
+		return
+	}
+
+	createResponse, err := r.repository.Create(ctx, data.Email.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Create Error", fmt.Sprintf("Unable to create User: %s", err))
 		return
@@ -109,7 +120,7 @@ func (r *User) Read(ctx context.Context, req resource.ReadRequest, resp *resourc
 	getResponse, err := r.repository.Get(ctx, data.Id.ValueString())
 
 	if err != nil {
-		resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get User: %s", err))
+		resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get user: %s", err))
 		return
 	}
 	result := terraform.CreateUserTerraformModelFromDTO(getResponse)
@@ -125,7 +136,7 @@ func (r *User) Update(ctx context.Context, req resource.UpdateRequest, resp *res
 		return
 	}
 
-	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.Name.ValueStringPointer(), data.ParentId.ValueStringPointer(), data.Archived.ValueBoolPointer())
+	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.IsActive.ValueBool())
 	if err != nil {
 		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update User: %s", err))
 		return
@@ -137,7 +148,7 @@ func (r *User) Update(ctx context.Context, req resource.UpdateRequest, resp *res
 }
 
 func (r *User) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	resp.Diagnostics.AddError("Can't delete", "Users can't be updated, set archived=true instead")
+	resp.Diagnostics.AddError("Can't delete", "Users can't be updated, set is_active=false instead")
 }
 
 func (r *User) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
