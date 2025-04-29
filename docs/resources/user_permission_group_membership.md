@@ -3,12 +3,12 @@
 page_title: "metabase_user_permission_group_membership Resource - metabase"
 subcategory: ""
 description: |-
-  User Permission group membership
+  Represents the link between a specific user and a permission group. Users can be members of multiple groups, and their effective permissions are the union of all permissions granted to the groups they belong to.
 ---
 
 # metabase_user_permission_group_membership (Resource)
 
-User Permission group membership
+Represents the link between a specific user and a permission group. Users can be members of multiple groups, and their effective permissions are the union of all permissions granted to the groups they belong to.
 
 
 
@@ -17,7 +17,7 @@ User Permission group membership
 
 ### Required
 
-- `permission_group_id` (String) ID of the user permission group membership
+- `permission_group_id` (String) ID of the permission group
 - `user_id` (String) ID of the user
 
 ### Read-Only
