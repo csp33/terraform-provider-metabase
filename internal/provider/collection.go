@@ -38,7 +38,7 @@ func (r *Collection) Metadata(ctx context.Context, req resource.MetadataRequest,
 func (r *Collection) Schema(ctx context.Context, req resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		// This description is used by the documentation generator and the language server.
-		MarkdownDescription: "Permission Group",
+		MarkdownDescription: "collection",
 
 		Attributes: map[string]schema.Attribute{
 			"name": schema.StringAttribute{
@@ -47,7 +47,7 @@ func (r *Collection) Schema(ctx context.Context, req resource.SchemaRequest, res
 			},
 			"id": schema.StringAttribute{
 				Computed:            true,
-				MarkdownDescription: "Group ID",
+				MarkdownDescription: "Collection ID",
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -91,7 +91,7 @@ func (r *Collection) Create(ctx context.Context, req resource.CreateRequest, res
 
 	createResponse, err := r.repository.Create(ctx, data.Name.ValueString(), data.ParentId.ValueStringPointer())
 	if err != nil {
-		resp.Diagnostics.AddError("Create Error", fmt.Sprintf("Unable to create permission group: %s", err))
+		resp.Diagnostics.AddError("Create Error", fmt.Sprintf("Unable to create collection: %s", err))
 		return
 	}
 
@@ -111,7 +111,7 @@ func (r *Collection) Read(ctx context.Context, req resource.ReadRequest, resp *r
 	getResponse, err := r.repository.Get(ctx, data.Id.ValueString())
 
 	if err != nil {
-		resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get permission group: %s", err))
+		resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get collection: %s", err))
 		return
 	}
 	result := terraform.CreateCollectionTerraformModelFromDTO(getResponse)
@@ -129,7 +129,7 @@ func (r *Collection) Update(ctx context.Context, req resource.UpdateRequest, res
 
 	_, err := r.repository.Update(ctx, data.Id.ValueString(), data.Name.ValueStringPointer(), data.ParentId.ValueStringPointer())
 	if err != nil {
-		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update permission group: %s", err))
+		resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update collection: %s", err))
 		return
 	}
 
@@ -148,7 +148,7 @@ func (r *Collection) Delete(ctx context.Context, req resource.DeleteRequest, res
 
 	err := r.repository.Delete(ctx, data.Id.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError("Delete Error", fmt.Sprintf("Unable to delete permission group: %s", err))
+		resp.Diagnostics.AddError("Delete Error", fmt.Sprintf("Unable to delete collection: %s", err))
 		return
 	}
 }

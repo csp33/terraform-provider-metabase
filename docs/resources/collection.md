@@ -3,12 +3,12 @@
 page_title: "metabase_collection Resource - metabase"
 subcategory: ""
 description: |-
-  Permission Group
+  collection
 ---
 
 # metabase_collection (Resource)
 
-Permission Group
+collection
 
 
 
@@ -25,4 +25,4 @@ Permission Group
 
 ### Read-Only
 
-- `id` (String) Group ID
+- `id` (String) Collection ID
