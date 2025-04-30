@@ -52,7 +52,8 @@ func (m *MetabaseAPIClient) request(ctx context.Context, path string, body any, 
 	if resp.StatusCode/100 != 2 {
 		defer resp.Body.Close()
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("request failed with status %d: %s", resp.StatusCode, string(bodyBytes))
+		message := string(bodyBytes)
+		return nil, CreateErrorFromStatusCode(resp.StatusCode, message)
 	}
 
 	return resp, nil
