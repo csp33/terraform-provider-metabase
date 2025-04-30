@@ -39,7 +39,6 @@ func (e *NotFoundError) Error() string {
 // ConflictError is returned when there's a conflict (409), e.g., resource already exists.
 type ConflictError struct {
 	BaseError
-	Details string
 }
 
 func NewConflictError(message string) *ConflictError {
@@ -52,7 +51,7 @@ func NewConflictError(message string) *ConflictError {
 }
 
 func (e *ConflictError) Error() string {
-	return fmt.Sprintf("Conflict: %s - %s", e.Details, e.Message)
+	return fmt.Sprintf("Conflict: %s", e.Message)
 }
 
 // BadRequestError is returned for bad requests (400).
