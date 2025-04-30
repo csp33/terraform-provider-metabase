@@ -162,3 +162,97 @@ func TestMetabaseAPIClient_Delete(t *testing.T) {
 
 	assertRequest(t, mockClient.LastRequest, http.MethodDelete, expectedURL, expectedHeaders, nil)
 }
+
+func TestMetabaseAPIClient_ErrorHandling(t *testing.T) {
+	tests := []struct {
+		name         string
+		statusCode   int
+		path         string
+		expectedType interface{}
+	}{
+		{
+			name:         "NotFoundError",
+			statusCode:   http.StatusNotFound,
+			path:         "/api/user/123",
+			expectedType: &NotFoundError{},
+		},
+		{
+			name:         "ConflictError",
+			statusCode:   http.StatusConflict,
+			path:         "/api/user",
+			expectedType: &ConflictError{},
+		},
+		{
+			name:         "BadRequestError",
+			statusCode:   http.StatusBadRequest,
+			path:         "/api/user",
+			expectedType: &BadRequestError{},
+		},
+		{
+			name:         "UnauthorizedError",
+			statusCode:   http.StatusUnauthorized,
+			path:         "/api/user",
+			expectedType: &UnauthorizedError{},
+		},
+		{
+			name:         "ForbiddenError",
+			statusCode:   http.StatusForbidden,
+			path:         "/api/user/123",
+			expectedType: &ForbiddenError{},
+		},
+		{
+			name:         "GenericError",
+			statusCode:   http.StatusInternalServerError,
+			path:         "/api/user",
+			expectedType: &BaseError{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockClient := &mockHTTPClient{
+				RoundTripFunc: func(req *http.Request) (*http.Response, error) {
+					return &http.Response{
+						StatusCode: tt.statusCode,
+						Body:       io.NopCloser(bytes.NewBufferString("Error message")),
+					}, nil
+				},
+			}
+			client := newTestClient(mockClient)
+
+			_, err := client.Get(context.Background(), tt.path)
+
+			if err == nil {
+				t.Fatalf("Expected error but got nil")
+			}
+
+			// Check if the error is of the expected type
+			switch tt.expectedType.(type) {
+			case *NotFoundError:
+				if _, ok := err.(*NotFoundError); !ok {
+					t.Errorf("Expected NotFoundError but got %T", err)
+				}
+			case *ConflictError:
+				if _, ok := err.(*ConflictError); !ok {
+					t.Errorf("Expected ConflictError but got %T", err)
+				}
+			case *BadRequestError:
+				if _, ok := err.(*BadRequestError); !ok {
+					t.Errorf("Expected BadRequestError but got %T", err)
+				}
+			case *UnauthorizedError:
+				if _, ok := err.(*UnauthorizedError); !ok {
+					t.Errorf("Expected UnauthorizedError but got %T", err)
+				}
+			case *ForbiddenError:
+				if _, ok := err.(*ForbiddenError); !ok {
+					t.Errorf("Expected ForbiddenError but got %T", err)
+				}
+			case *BaseError:
+				if _, ok := err.(*BaseError); !ok {
+					t.Errorf("Expected BaseError but got %T", err)
+				}
+			}
+		})
+	}
+}

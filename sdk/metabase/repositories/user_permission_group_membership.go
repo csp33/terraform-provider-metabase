@@ -39,7 +39,7 @@ func (r *UserPermissionGroupMembershipRepository) Create(ctx context.Context, us
 		}
 	}
 
-	return nil, fmt.Errorf("no membership found for user_id %s and group_id %s", userId, groupId)
+	return nil, metabase.NewNotFoundError(fmt.Sprintf("Membership not found for user_id %s and group_id %s", userId, groupId))
 
 }
 
@@ -64,7 +64,7 @@ func (r *UserPermissionGroupMembershipRepository) Get(ctx context.Context, id st
 			}
 		}
 	}
-	return nil, fmt.Errorf("membership with ID %s not found", id)
+	return nil, metabase.NewNotFoundError(fmt.Sprintf("Membership with ID %s not found", id))
 }
 
 func (r *UserPermissionGroupMembershipRepository) Delete(ctx context.Context, id string) error {
