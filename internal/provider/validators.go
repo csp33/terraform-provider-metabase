@@ -46,3 +46,36 @@ func (v lowercaseValidator) ValidateString(_ context.Context, req validator.Stri
 		)
 	}
 }
+
+// oneOfValidator restricts a string to a fixed set of allowed values.
+type oneOfValidator struct{ allowed []string }
+
+// OneOfValidator returns a validator that accepts only the given values.
+func OneOfValidator(allowed ...string) validator.String {
+	return oneOfValidator{allowed: allowed}
+}
+
+func (v oneOfValidator) Description(_ context.Context) string {
+	return fmt.Sprintf("value must be one of %s", strings.Join(v.allowed, ", "))
+}
+
+func (v oneOfValidator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v oneOfValidator) ValidateString(_ context.Context, req validator.StringRequest, resp *validator.StringResponse) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	value := req.ConfigValue.ValueString()
+	for _, a := range v.allowed {
+		if value == a {
+			return
+		}
+	}
+	resp.Diagnostics.AddAttributeError(
+		req.Path,
+		"Invalid value",
+		fmt.Sprintf("%q must be one of: %s", value, strings.Join(v.allowed, ", ")),
+	)
+}
