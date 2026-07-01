@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/terraform"
@@ -83,6 +84,14 @@ func NewUserPermissionGroupMembership() resource.Resource {
 			getResponse, err := membership.repository.Get(ctx, plan.Id.ValueString())
 
 			if err != nil {
+				// Membership removed out-of-band (e.g. its group was deleted, which
+				// cascade-removes memberships): drop it from state so Terraform plans
+				// to recreate it instead of erroring.
+				var notFound *metabase.NotFoundError
+				if errors.As(err, &notFound) {
+					resp.State.RemoveResource(ctx)
+					return
+				}
 				resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get user permission group membership: %s", err))
 				return
 			}
