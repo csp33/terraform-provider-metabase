@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/terraform"
@@ -44,7 +45,7 @@ func NewCollection() resource.Resource {
 						Optional:            true,
 					},
 					"archived": schema.BoolAttribute{
-						MarkdownDescription: "Whether the collection is archived. Archived collections are not visible in the UI. Collections can be archived, but not deleted.",
+						MarkdownDescription: "Whether the collection is in the Trash. Set true to send it to the Trash (recoverable) while keeping it managed. Removing the resource permanently deletes it (archive + delete).",
 						Optional:            true,
 						Computed:            true,
 						Default:             booldefault.StaticBool(false),
@@ -85,6 +86,13 @@ func NewCollection() resource.Resource {
 			getResponse, err := collection.repository.Get(ctx, plan.Id.ValueString())
 
 			if err != nil {
+				// Collection deleted out-of-band (hard delete from Trash): drop it from
+				// state so Terraform recreates it instead of erroring.
+				var notFound *metabase.NotFoundError
+				if errors.As(err, &notFound) {
+					resp.State.RemoveResource(ctx)
+					return
+				}
 				resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get collection: %s", err))
 				return
 			}
@@ -118,10 +126,11 @@ func NewCollection() resource.Resource {
 				return
 			}
 
-			archived := true
-			_, err := collection.repository.Update(ctx, state.Id.ValueString(), nil, nil, &archived)
+			// Permanent removal (archive + delete). To only send a collection to the
+			// Trash while keeping it managed, set archived = true instead.
+			err := collection.repository.Delete(ctx, state.Id.ValueString())
 			if err != nil {
-				resp.Diagnostics.AddError("Archive Error", fmt.Sprintf("Unable to archive collection: %s", err))
+				resp.Diagnostics.AddError("Delete Error", fmt.Sprintf("Unable to delete collection: %s", err))
 				return
 			}
 		},

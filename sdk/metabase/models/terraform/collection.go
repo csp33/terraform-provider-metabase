@@ -7,6 +7,7 @@ import (
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/dtos"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"strconv"
+	"strings"
 )
 
 type CollectionTerraformModel struct {
@@ -17,17 +18,21 @@ type CollectionTerraformModel struct {
 }
 
 func CreateCollectionTerraformModelFromDTO(source *dtos.CollectionDTO) CollectionTerraformModel {
-	var parentId types.String
-	if source.ParentId == nil {
-		parentId = types.StringNull()
-	} else {
-		parentId = types.StringValue(strconv.Itoa(*source.ParentId))
-	}
 	return CollectionTerraformModel{
 		Id:       types.StringValue(strconv.Itoa(source.Id)),
 		Name:     types.StringValue(source.Name),
-		ParentId: parentId,
+		ParentId: parentIdFromLocation(source.Location),
 		Archived: types.BoolValue(source.Archived),
 	}
+}
 
+// parentIdFromLocation extracts the immediate parent id from a Metabase collection
+// "location" path ("/" => root/null, "/12/" => 12, "/12/34/" => 34).
+func parentIdFromLocation(location string) types.String {
+	trimmed := strings.Trim(location, "/")
+	if trimmed == "" {
+		return types.StringNull()
+	}
+	parts := strings.Split(trimmed, "/")
+	return types.StringValue(parts[len(parts)-1])
 }

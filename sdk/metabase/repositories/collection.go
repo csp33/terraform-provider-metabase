@@ -6,10 +6,19 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/dtos"
 )
+
+// Metabase's collection INSERT is not concurrency-safe: creating several
+// collections in one apply can fail with a 5xx unique-constraint race. Retry a
+// few times before giving up.
+const collectionCreateMaxAttempts = 4
 
 type CollectionRepository struct {
 	client *metabase.MetabaseAPIClient
@@ -30,8 +39,18 @@ func (r *CollectionRepository) Create(ctx context.Context, name string, parentId
 		body["archived"] = false
 	}
 
-	resp, err := r.client.Post(ctx, "/api/collection", body)
-	if err != nil {
+	var resp *http.Response
+	var err error
+	for attempt := 1; ; attempt++ {
+		resp, err = r.client.Post(ctx, "/api/collection", body)
+		if err == nil {
+			break
+		}
+		var baseErr *metabase.BaseError
+		if attempt < collectionCreateMaxAttempts && errors.As(err, &baseErr) && baseErr.StatusCode >= 500 {
+			time.Sleep(time.Duration(attempt) * 150 * time.Millisecond)
+			continue
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -84,4 +103,31 @@ func (r *CollectionRepository) Update(ctx context.Context, id string, name *stri
 	defer resp.Body.Close()
 
 	return true, nil
+}
+
+// Delete permanently removes a collection. Metabase only permanently deletes
+// ARCHIVED collections, so archive first (idempotent) then delete. Sending a
+// collection to the Trash without deleting it is done via the archived attribute.
+func (r *CollectionRepository) Delete(ctx context.Context, id string) error {
+	archived := true
+	if _, err := r.Update(ctx, id, nil, nil, &archived); err != nil {
+		var notFound *metabase.NotFoundError
+		if errors.As(err, &notFound) {
+			return nil
+		}
+		return err
+	}
+
+	path := fmt.Sprintf("/api/collection/%s", id)
+	resp, err := r.client.Delete(ctx, path)
+	if err != nil {
+		var notFound *metabase.NotFoundError
+		if errors.As(err, &notFound) {
+			return nil
+		}
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
 }
