@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/terraform"
@@ -71,6 +72,13 @@ func NewPermissionGroup() resource.Resource {
 			getResponse, err := permissionGroup.repository.Get(ctx, plan.Id.ValueString())
 
 			if err != nil {
+				// Group was deleted out-of-band (hard delete): drop it from state so
+				// Terraform plans to recreate it instead of erroring.
+				var notFound *metabase.NotFoundError
+				if errors.As(err, &notFound) {
+					resp.State.RemoveResource(ctx)
+					return
+				}
 				resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get permission group: %s", err))
 				return
 			}
