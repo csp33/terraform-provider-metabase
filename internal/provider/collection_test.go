@@ -5,12 +5,10 @@ package provider
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math/rand"
 	"testing"
 
-	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/repositories"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
@@ -23,21 +21,20 @@ func getCollectionName() string {
 
 var collectionName = getCollectionName()
 
-// testAccCheckCollectionDestroyed asserts that destroy permanently removes
-// collections (archive + delete): GET must return 404.
-func testAccCheckCollectionDestroyed(s *terraform.State) error {
+// testAccCheckCollectionArchived asserts that destroy sends collections to the
+// Trash (archived=true) and never permanently deletes them.
+func testAccCheckCollectionArchived(s *terraform.State) error {
 	repo := repositories.NewCollectionRepository(newTestMetabaseClient())
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "metabase_collection" {
 			continue
 		}
-		_, err := repo.Get(context.Background(), rs.Primary.ID)
-		if err == nil {
-			return fmt.Errorf("collection %s still exists after destroy", rs.Primary.ID)
+		c, err := repo.Get(context.Background(), rs.Primary.ID)
+		if err != nil {
+			return fmt.Errorf("collection %s get failed after destroy: %w", rs.Primary.ID, err)
 		}
-		var notFound *metabase.NotFoundError
-		if !errors.As(err, &notFound) {
-			return fmt.Errorf("unexpected error checking destroyed collection %s: %w", rs.Primary.ID, err)
+		if !c.Archived {
+			return fmt.Errorf("collection %s is not archived after destroy", rs.Primary.ID)
 		}
 	}
 	return nil
@@ -47,7 +44,7 @@ func TestAccCollectionResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckCollectionDestroyed,
+		CheckDestroy:             testAccCheckCollectionArchived,
 		Steps: []resource.TestStep{
 			// Create and Read.
 			{
@@ -94,7 +91,7 @@ func TestAccCollectionResource_nested(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccCheckCollectionDestroyed,
+		CheckDestroy:             testAccCheckCollectionArchived,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccCollectionNestedConfig(nameA, nameB, nameChild, "a"),

@@ -79,7 +79,7 @@ func (r *CollectionRepository) Get(ctx context.Context, id string) (*dtos.Collec
 
 func (r *CollectionRepository) Update(ctx context.Context, id string, name *string, parentId *string, archived *bool) (bool, error) {
 	path := fmt.Sprintf("/api/collection/%s", id)
-	body := map[string]any{"archived": archived}
+	body := map[string]any{}
 	if name != nil {
 		body["name"] = *name
 	}
@@ -105,21 +105,13 @@ func (r *CollectionRepository) Update(ctx context.Context, id string, name *stri
 	return true, nil
 }
 
-// Delete permanently removes a collection. Metabase only permanently deletes
-// ARCHIVED collections, so archive first (idempotent) then delete. Sending a
-// collection to the Trash without deleting it is done via the archived attribute.
-func (r *CollectionRepository) Delete(ctx context.Context, id string) error {
-	archived := true
-	if _, err := r.Update(ctx, id, nil, nil, &archived); err != nil {
-		var notFound *metabase.NotFoundError
-		if errors.As(err, &notFound) {
-			return nil
-		}
-		return err
-	}
-
+// Archive sends the collection to the Trash. This is recoverable and does NOT
+// permanently delete the collection or its contents (questions/dashboards) —
+// "better safe than sorry" since collections hold data. Sends only "archived" so
+// the collection's location/parent is preserved. Idempotent on 404.
+func (r *CollectionRepository) Archive(ctx context.Context, id string) error {
 	path := fmt.Sprintf("/api/collection/%s", id)
-	resp, err := r.client.Delete(ctx, path)
+	resp, err := r.client.Put(ctx, path, map[string]any{"archived": true})
 	if err != nil {
 		var notFound *metabase.NotFoundError
 		if errors.As(err, &notFound) {

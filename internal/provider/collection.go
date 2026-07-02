@@ -45,7 +45,7 @@ func NewCollection() resource.Resource {
 						Optional:            true,
 					},
 					"archived": schema.BoolAttribute{
-						MarkdownDescription: "Whether the collection is in the Trash. Set true to send it to the Trash (recoverable) while keeping it managed. Removing the resource permanently deletes it (archive + delete).",
+						MarkdownDescription: "Whether the collection is in the Trash. Set true to send it to the Trash (recoverable) while keeping it managed. Removing the resource also sends it to the Trash (never a permanent delete).",
 						Optional:            true,
 						Computed:            true,
 						Default:             booldefault.StaticBool(false),
@@ -126,11 +126,12 @@ func NewCollection() resource.Resource {
 				return
 			}
 
-			// Permanent removal (archive + delete). To only send a collection to the
-			// Trash while keeping it managed, set archived = true instead.
-			err := collection.repository.Delete(ctx, state.Id.ValueString())
+			// Destroy = send to the Trash (recoverable), never a permanent delete:
+			// collections hold data, so we handle them with care. Permanent deletion,
+			// if ever wanted, is a deliberate manual action in Metabase's Trash.
+			err := collection.repository.Archive(ctx, state.Id.ValueString())
 			if err != nil {
-				resp.Diagnostics.AddError("Delete Error", fmt.Sprintf("Unable to delete collection: %s", err))
+				resp.Diagnostics.AddError("Archive Error", fmt.Sprintf("Unable to archive collection: %s", err))
 				return
 			}
 		},
