@@ -12,6 +12,7 @@ import (
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/repositories"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 )
@@ -54,6 +55,16 @@ func NewDatabase() resource.Resource {
 						Required:            true,
 						Sensitive:           true,
 					},
+					// Terraform-only guard (no Metabase counterpart): deleting a database
+					// in Metabase is a HARD delete that cascades to every question,
+					// dashboard, model, etc. built on it. Defaults to true so a stray
+					// destroy can't wipe content; set false and apply before removing.
+					"deletion_protection": schema.BoolAttribute{
+						MarkdownDescription: "If true (default), refuses to delete the database. Metabase hard-deletes a database and all content built on it, so set this to false and apply before destroying.",
+						Optional:            true,
+						Computed:            true,
+						Default:             booldefault.StaticBool(true),
+					},
 				},
 			}
 		},
@@ -70,7 +81,7 @@ func NewDatabase() resource.Resource {
 				return
 			}
 
-			result := terraform.CreateDatabaseTerraformModelFromDTO(createResponse, plan.Details)
+			result := terraform.CreateDatabaseTerraformModelFromDTO(createResponse, plan.Details, plan.DeletionProtection)
 			resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
 		},
 		ReadFunc: func(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
@@ -91,7 +102,7 @@ func NewDatabase() resource.Resource {
 				return
 			}
 
-			result := terraform.CreateDatabaseTerraformModelFromDTO(getResponse, state.Details)
+			result := terraform.CreateDatabaseTerraformModelFromDTO(getResponse, state.Details, state.DeletionProtection)
 			resp.Diagnostics.Append(resp.State.Set(ctx, &result)...)
 		},
 		UpdateFunc: func(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -113,6 +124,14 @@ func NewDatabase() resource.Resource {
 			var state terraform.DatabaseTerraformModel
 			resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 			if resp.Diagnostics.HasError() {
+				return
+			}
+
+			if state.DeletionProtection.ValueBool() {
+				resp.Diagnostics.AddError(
+					"Database deletion protected",
+					"This database has deletion_protection = true. Metabase hard-deletes a database and all content built on it. Set deletion_protection = false and apply before removing or destroying this resource.",
+				)
 				return
 			}
 

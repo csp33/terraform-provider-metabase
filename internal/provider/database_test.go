@@ -62,7 +62,7 @@ func TestAccDatabaseResource(t *testing.T) {
 				ResourceName:            "metabase_database.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"details"},
+				ImportStateVerifyIgnore: []string{"details", "deletion_protection"},
 			},
 			// Rename in-place (not a replace).
 			{
@@ -81,8 +81,9 @@ func TestAccDatabaseResource(t *testing.T) {
 func testAccDatabaseResourceConfig(name string) string {
 	return testAccProviderConfig() + fmt.Sprintf(`
 resource "metabase_database" "test" {
-  name   = "%s"
-  engine = "postgres"
+  name                = "%s"
+  engine              = "postgres"
+  deletion_protection = false
   details = jsonencode({
     host     = "sample-db"
     port     = 5432
