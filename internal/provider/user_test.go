@@ -216,6 +216,34 @@ func TestAccUserResource_reactivateViaImport(t *testing.T) {
 	})
 }
 
+// TestUserReactivateIdempotent asserts that reactivating an already-active user is
+// a no-op success (Metabase returns 400 "Not able to reactivate an active user").
+func TestUserReactivateIdempotent(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("acceptance test; set TF_ACC=1")
+	}
+	testAccPreCheck(t)
+
+	repo := repositories.NewUserRepository(newTestMetabaseClient())
+	ctx := context.Background()
+
+	created, err := repo.Create(ctx, getUserEmail(), "Reactivate", "Idempotent")
+	if err != nil {
+		t.Fatalf("create failed: %s", err)
+	}
+	id := strconv.Itoa(created.Id)
+
+	// The user is active; reactivating it (Update with is_active=true) must succeed.
+	if _, err := repo.Update(ctx, id, nil, nil, nil, boolPtr(true)); err != nil {
+		t.Fatalf("reactivating an active user should be idempotent, got: %s", err)
+	}
+
+	// Cleanup: deactivate.
+	if _, err := repo.Update(ctx, id, nil, nil, nil, boolPtr(false)); err != nil {
+		t.Fatalf("cleanup deactivate failed: %s", err)
+	}
+}
+
 func testAccUserResourceConfig(email, firstName, lastName string) string {
 	return testAccUserResourceConfigNamed("test", email, firstName, lastName)
 }

@@ -122,6 +122,12 @@ func (r *UserRepository) reactivate(ctx context.Context, id string) (bool, error
 
 	resp, err := r.client.Put(ctx, path, body)
 	if err != nil {
+		// Idempotent: reactivating an already-active user returns 400
+		// ("Not able to reactivate an active user"); treat that as success.
+		var badRequest *metabase.BadRequestError
+		if errors.As(err, &badRequest) && strings.Contains(strings.ToLower(badRequest.Message), "active user") {
+			return true, nil
+		}
 		return false, err
 	}
 	defer resp.Body.Close()

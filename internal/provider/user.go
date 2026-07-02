@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/terraform"
@@ -95,6 +96,14 @@ func NewUser() resource.Resource {
 			getResponse, err := user.repository.Get(ctx, data.Id.ValueString())
 
 			if err != nil {
+				// Consistent with the other resources: a 404 (nonexistent id; not a
+				// normal case since users are soft-deleted, but possible on a bad
+				// import) drops it from state instead of erroring.
+				var notFound *metabase.NotFoundError
+				if errors.As(err, &notFound) {
+					resp.State.RemoveResource(ctx)
+					return
+				}
 				resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get user: %s", err))
 				return
 			}
