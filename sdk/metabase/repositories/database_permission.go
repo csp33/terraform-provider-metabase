@@ -62,7 +62,7 @@ func (r *DatabasePermissionRepository) Get(ctx context.Context, groupId string, 
 // always "unrestricted" (the only accepted value) and Metabase leaves it untouched
 // when omitted; sending it adds no value and null would be rejected.
 func (r *DatabasePermissionRepository) Set(ctx context.Context, groupId string, databaseId string, createQueries string) error {
-	entry := map[string]any{"create-queries": parseCreateQueries(createQueries)}
+	entry := map[string]any{"create-queries": createQueries}
 	return r.putEdge(ctx, groupId, databaseId, entry)
 }
 
@@ -106,7 +106,7 @@ func isRetryableGraphError(err error) bool {
 
 // createQueriesToString normalizes the create-queries value read from the graph:
 // a string enum stays as-is, an absent value means no query access ("no"), and a
-// granular object is returned as its JSON encoding.
+// granular object (set out-of-band) is returned as its JSON encoding.
 func createQueriesToString(v any) string {
 	switch t := v.(type) {
 	case string:
@@ -117,14 +117,4 @@ func createQueriesToString(v any) string {
 		b, _ := json.Marshal(t)
 		return string(b)
 	}
-}
-
-// parseCreateQueries sends a JSON object when the value is a granular object,
-// otherwise the string enum as-is.
-func parseCreateQueries(value string) any {
-	var obj map[string]any
-	if json.Unmarshal([]byte(value), &obj) == nil {
-		return obj
-	}
-	return value
 }

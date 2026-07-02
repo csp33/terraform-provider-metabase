@@ -79,7 +79,6 @@ func (r *PermissionGroupRepository) nameInUseError(ctx context.Context, name str
 
 func (r *PermissionGroupRepository) Get(ctx context.Context, id string) (*dtos.PermissionGroupDTO, error) {
 	path := fmt.Sprintf("/api/permissions/group/%s", id)
-	// TODO: mark as deleted if 404
 	resp, err := r.client.Get(ctx, path)
 	if err != nil {
 		return nil, err
