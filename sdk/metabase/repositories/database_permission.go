@@ -67,6 +67,12 @@ func (r *DatabasePermissionRepository) Set(ctx context.Context, groupId string, 
 }
 
 func (r *DatabasePermissionRepository) putEdge(ctx context.Context, groupId string, databaseId string, entry map[string]any) error {
+	// Serialize all data-graph writes in this process: the read-modify-write races
+	// on the permissions_revision id under concurrency (retries alone don't absorb
+	// it at high parallelism). The retry below still guards inter-process contention.
+	permissionsGraphMu.Lock()
+	defer permissionsGraphMu.Unlock()
+
 	for attempt := 1; ; attempt++ {
 		g, err := r.get(ctx)
 		if err != nil {

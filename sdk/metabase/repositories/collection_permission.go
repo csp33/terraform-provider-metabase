@@ -55,6 +55,11 @@ func (r *CollectionPermissionRepository) Get(ctx context.Context, groupId string
 // Set applies a permission ("read"/"write"/"none") for the group/collection edge,
 // merging into the graph with revision-based retry. Revoking is "none".
 func (r *CollectionPermissionRepository) Set(ctx context.Context, groupId string, collectionId string, permission string) error {
+	// Serialize all collection-graph writes in this process (same revision race as
+	// the data graph). The retry below still guards inter-process contention.
+	collectionGraphMu.Lock()
+	defer collectionGraphMu.Unlock()
+
 	for attempt := 1; ; attempt++ {
 		g, err := r.get(ctx)
 		if err != nil {

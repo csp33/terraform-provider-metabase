@@ -30,6 +30,11 @@ func decodeDetails(detailsJSON string) (map[string]any, error) {
 }
 
 func (r *DatabaseRepository) Create(ctx context.Context, name string, engine string, detailsJSON string) (*dtos.DatabaseDTO, error) {
+	// Bound concurrent creates: each triggers a connection test + schema sync, which
+	// is heavy; a bulk apply shouldn't launch dozens at once.
+	acquireDatabaseWrite()
+	defer releaseDatabaseWrite()
+
 	details, err := decodeDetails(detailsJSON)
 	if err != nil {
 		return nil, err
@@ -65,6 +70,9 @@ func (r *DatabaseRepository) Get(ctx context.Context, id string) (*dtos.Database
 }
 
 func (r *DatabaseRepository) Update(ctx context.Context, id string, name *string, detailsJSON *string) (bool, error) {
+	acquireDatabaseWrite()
+	defer releaseDatabaseWrite()
+
 	body := map[string]any{}
 	if name != nil {
 		body["name"] = *name

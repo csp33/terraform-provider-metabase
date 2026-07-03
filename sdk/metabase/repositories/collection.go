@@ -39,6 +39,12 @@ func (r *CollectionRepository) Create(ctx context.Context, name string, parentId
 		body["archived"] = false
 	}
 
+	// Serialize collection creation in this process: it races on the
+	// collection_revision id under concurrency (retries alone don't absorb it at
+	// high parallelism). The retry below still guards inter-process contention.
+	collectionCreateMu.Lock()
+	defer collectionCreateMu.Unlock()
+
 	var resp *http.Response
 	var err error
 	for attempt := 1; ; attempt++ {
