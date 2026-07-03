@@ -26,10 +26,8 @@ func (r *PermissionGroupRepository) Create(ctx context.Context, name string) (*d
 	body := map[string]string{"name": name}
 	resp, err := r.client.Post(ctx, "/api/permissions/group", body)
 	if err != nil {
-		// Group names are unique; Metabase returns 400 "A group with that name
-		// already exists." Rather than adopt an existing group, fail with a
-		// `terraform import` hint (groups are hard-deleted, so there is no
-		// deactivated-vs-active nuance as with users).
+		// Group names are unique; a duplicate returns 400. Return an import hint
+		// instead of adopting the existing group.
 		var badRequest *metabase.BadRequestError
 		if errors.As(err, &badRequest) && strings.Contains(strings.ToLower(badRequest.Message), "already exists") {
 			return nil, r.nameInUseError(ctx, name)

@@ -17,9 +17,8 @@ type DatabaseTerraformModel struct {
 	DeletionProtection types.Bool   `tfsdk:"deletion_protection"`
 }
 
-// details and deletionProtection are carried from plan/state, not the DTO: Metabase
-// redacts secrets and injects extra keys (details is not round-trip safe), and
-// deletion_protection is a Terraform-only guard with no Metabase counterpart.
+// details/deletionProtection are carried from plan/state, not the DTO (secrets are
+// redacted server-side; deletion_protection is a Terraform-only guard).
 func CreateDatabaseTerraformModelFromDTO(source *dtos.DatabaseDTO, details types.String, deletionProtection types.Bool) DatabaseTerraformModel {
 	return DatabaseTerraformModel{
 		Id:                 types.StringValue(strconv.Itoa(source.Id)),

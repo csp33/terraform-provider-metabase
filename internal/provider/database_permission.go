@@ -134,8 +134,7 @@ func NewDatabasePermission() resource.Resource {
 				return
 			}
 
-			// Revoke = no query access. The edge itself can't be removed (Metabase
-			// keeps a view-data entry per group/db) and null would be rejected.
+			// Revoke = "no"; the edge itself can't be removed.
 			err := databasePermission.repository.Set(ctx, state.GroupId.ValueString(), state.DatabaseId.ValueString(), "no")
 			if err != nil {
 				resp.Diagnostics.AddError("Delete Error", fmt.Sprintf("Unable to revoke database permission: %s", err))

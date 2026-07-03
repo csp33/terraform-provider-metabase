@@ -23,9 +23,7 @@ func NewUserPermissionGroupMembershipRepository(client *metabase.MetabaseAPIClie
 }
 
 func (r *UserPermissionGroupMembershipRepository) Create(ctx context.Context, userId string, groupId string) (*dtos.UserPermissionGroupMembershipDTO, error) {
-	// A duplicate (user, group) membership makes Metabase return HTTP 500, and the
-	// "All Users" group auto-enrolls everyone. Pre-check so we return a clean,
-	// actionable error (with an import hint) instead of surfacing a 500.
+	// A duplicate (user, group) membership 500s; pre-check and return an import hint.
 	if existing, err := r.findByUserAndGroup(ctx, userId, groupId); err != nil {
 		return nil, err
 	} else if existing != nil {
@@ -81,8 +79,7 @@ func (r *UserPermissionGroupMembershipRepository) Get(ctx context.Context, id st
 	return nil, metabase.NewNotFoundError(fmt.Sprintf("Membership with ID %s not found", id))
 }
 
-// findByUserAndGroup returns the membership linking the given user and group, or
-// nil if none exists.
+// findByUserAndGroup returns the membership linking this user and group, or nil.
 func (r *UserPermissionGroupMembershipRepository) findByUserAndGroup(ctx context.Context, userId string, groupId string) (*dtos.UserPermissionGroupMembershipDTO, error) {
 	resp, err := r.client.Get(ctx, "/api/permissions/membership")
 	if err != nil {
@@ -109,8 +106,7 @@ func (r *UserPermissionGroupMembershipRepository) Delete(ctx context.Context, id
 	path := fmt.Sprintf("/api/permissions/membership/%s", id)
 	resp, err := r.client.Delete(ctx, path)
 	if err != nil {
-		// Idempotent delete: if the membership is already gone (e.g. its group was
-		// deleted, which cascade-removes memberships), treat as success.
+		// Idempotent: a membership already gone (e.g. group deleted) is a success.
 		var notFound *metabase.NotFoundError
 		if errors.As(err, &notFound) {
 			return nil

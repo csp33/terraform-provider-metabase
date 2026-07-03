@@ -86,8 +86,7 @@ func NewCollection() resource.Resource {
 			getResponse, err := collection.repository.Get(ctx, plan.Id.ValueString())
 
 			if err != nil {
-				// Collection deleted out-of-band (hard delete from Trash): drop it from
-				// state so Terraform recreates it instead of erroring.
+				// Deleted out-of-band (404): drop from state so it's recreated.
 				var notFound *metabase.NotFoundError
 				if errors.As(err, &notFound) {
 					resp.State.RemoveResource(ctx)
@@ -126,9 +125,7 @@ func NewCollection() resource.Resource {
 				return
 			}
 
-			// Destroy = send to the Trash (recoverable), never a permanent delete:
-			// collections hold data, so we handle them with care. Permanent deletion,
-			// if ever wanted, is a deliberate manual action in Metabase's Trash.
+			// Destroy = archive to Trash (recoverable), never a permanent delete.
 			err := collection.repository.Archive(ctx, state.Id.ValueString())
 			if err != nil {
 				resp.Diagnostics.AddError("Archive Error", fmt.Sprintf("Unable to archive collection: %s", err))

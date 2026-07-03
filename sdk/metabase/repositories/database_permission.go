@@ -13,8 +13,8 @@ import (
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 )
 
-// The data permissions graph uses optimistic locking via a revision; a stale
-// revision returns 409. Mutations are read-modify-write with bounded retry.
+// The permissions graph uses optimistic locking via a revision (stale → 409);
+// writes are read-modify-write with bounded retry.
 const graphMaxAttempts = 5
 
 type dataGraph struct {
@@ -43,8 +43,8 @@ func (r *DatabasePermissionRepository) get(ctx context.Context) (*dataGraph, err
 	return &g, nil
 }
 
-// Get returns the create_queries level for a group/database edge. found is false
-// when the group or database has no entry (e.g. either was deleted).
+// Get returns the create_queries level for a group/database edge; found is false
+// when there is no entry.
 func (r *DatabasePermissionRepository) Get(ctx context.Context, groupId string, databaseId string) (createQueries string, found bool, err error) {
 	g, err := r.get(ctx)
 	if err != nil {
@@ -57,19 +57,15 @@ func (r *DatabasePermissionRepository) Get(ctx context.Context, groupId string, 
 	return createQueriesToString(entry["create-queries"]), true, nil
 }
 
-// Set applies create_queries for the group/database edge, merging into the graph
-// with revision-based retry. view-data is intentionally not sent: on OSS it is
-// always "unrestricted" (the only accepted value) and Metabase leaves it untouched
-// when omitted; sending it adds no value and null would be rejected.
+// Set applies create_queries for the group/database edge. view-data is omitted:
+// on OSS it is always "unrestricted" and Metabase leaves it untouched when absent.
 func (r *DatabasePermissionRepository) Set(ctx context.Context, groupId string, databaseId string, createQueries string) error {
 	entry := map[string]any{"create-queries": createQueries}
 	return r.putEdge(ctx, groupId, databaseId, entry)
 }
 
 func (r *DatabasePermissionRepository) putEdge(ctx context.Context, groupId string, databaseId string, entry map[string]any) error {
-	// Serialize all data-graph writes in this process: the read-modify-write races
-	// on the permissions_revision id under concurrency (retries alone don't absorb
-	// it at high parallelism). The retry below still guards inter-process contention.
+	// Serialize in-process: the read-modify-write races on the shared revision id.
 	permissionsGraphMu.Lock()
 	defer permissionsGraphMu.Unlock()
 
@@ -94,10 +90,8 @@ func (r *DatabasePermissionRepository) putEdge(ctx context.Context, groupId stri
 	}
 }
 
-// isRetryableGraphError reports whether a graph write should be retried under
-// read-modify-write: a 409 (stale revision) or a 5xx (Metabase computes the
-// permissions/collection revision-log id in app code, so concurrent writes race
-// on its primary key and surface as a 500 unique-constraint violation).
+// isRetryableGraphError reports whether a graph write is worth retrying: a 409
+// (stale revision) or a 5xx (concurrent writes race on the app-computed revision id).
 func isRetryableGraphError(err error) bool {
 	var conflict *metabase.ConflictError
 	if errors.As(err, &conflict) {
@@ -110,9 +104,8 @@ func isRetryableGraphError(err error) bool {
 	return false
 }
 
-// createQueriesToString normalizes the create-queries value read from the graph:
-// a string enum stays as-is, an absent value means no query access ("no"), and a
-// granular object (set out-of-band) is returned as its JSON encoding.
+// createQueriesToString normalizes a create-queries value: string enum as-is,
+// absent → "no", a granular object → its JSON encoding.
 func createQueriesToString(v any) string {
 	switch t := v.(type) {
 	case string:

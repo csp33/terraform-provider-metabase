@@ -47,18 +47,13 @@ func NewDatabase() resource.Resource {
 							stringplanmodifier.RequiresReplace(),
 						},
 					},
-					// Connection details as a JSON object (use jsonencode). Config is the
-					// source of truth: Metabase redacts secrets and adds default keys, so
-					// details is never reconciled from the API to avoid a perpetual diff.
+					// Config is authoritative: Metabase redacts secrets, so details is never read back.
 					"details": schema.StringAttribute{
 						MarkdownDescription: "Connection details as a JSON object (use jsonencode). Config is authoritative; not read back from Metabase.",
 						Required:            true,
 						Sensitive:           true,
 					},
-					// Terraform-only guard (no Metabase counterpart): deleting a database
-					// in Metabase is a HARD delete that cascades to every question,
-					// dashboard, model, etc. built on it. Defaults to true so a stray
-					// destroy can't wipe content; set false and apply before removing.
+					// Terraform-only guard: deleting a database hard-deletes all content built on it.
 					"deletion_protection": schema.BoolAttribute{
 						MarkdownDescription: "If true (default), refuses to delete the database. Metabase hard-deletes a database and all content built on it, so set this to false and apply before destroying.",
 						Optional:            true,

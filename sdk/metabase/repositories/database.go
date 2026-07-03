@@ -30,8 +30,7 @@ func decodeDetails(detailsJSON string) (map[string]any, error) {
 }
 
 func (r *DatabaseRepository) Create(ctx context.Context, name string, engine string, detailsJSON string) (*dtos.DatabaseDTO, error) {
-	// Bound concurrent creates: each triggers a connection test + schema sync, which
-	// is heavy; a bulk apply shouldn't launch dozens at once.
+	// Bound concurrency: each create runs a heavy connection test + schema sync.
 	acquireDatabaseWrite()
 	defer releaseDatabaseWrite()
 

@@ -38,8 +38,8 @@ func (r *CollectionPermissionRepository) get(ctx context.Context) (*collectionGr
 	return &g, nil
 }
 
-// Get returns the permission of a group on a collection. found is false when there
-// is no grant ("none" or absent, e.g. the group or collection was removed).
+// Get returns a group's permission on a collection; found is false when there is
+// no grant ("none" or absent).
 func (r *CollectionPermissionRepository) Get(ctx context.Context, groupId string, collectionId string) (permission string, found bool, err error) {
 	g, err := r.get(ctx)
 	if err != nil {
@@ -52,11 +52,9 @@ func (r *CollectionPermissionRepository) Get(ctx context.Context, groupId string
 	return perm, true, nil
 }
 
-// Set applies a permission ("read"/"write"/"none") for the group/collection edge,
-// merging into the graph with revision-based retry. Revoking is "none".
+// Set applies a permission ("read"/"write"/"none") for the group/collection edge.
 func (r *CollectionPermissionRepository) Set(ctx context.Context, groupId string, collectionId string, permission string) error {
-	// Serialize all collection-graph writes in this process (same revision race as
-	// the data graph). The retry below still guards inter-process contention.
+	// Serialize in-process: the read-modify-write races on the shared revision id.
 	collectionGraphMu.Lock()
 	defer collectionGraphMu.Unlock()
 

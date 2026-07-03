@@ -84,9 +84,7 @@ func NewUserPermissionGroupMembership() resource.Resource {
 			getResponse, err := membership.repository.Get(ctx, plan.Id.ValueString())
 
 			if err != nil {
-				// Membership removed out-of-band (e.g. its group was deleted, which
-				// cascade-removes memberships): drop it from state so Terraform plans
-				// to recreate it instead of erroring.
+				// Gone out-of-band (e.g. group deleted): drop from state so it's recreated.
 				var notFound *metabase.NotFoundError
 				if errors.As(err, &notFound) {
 					resp.State.RemoveResource(ctx)

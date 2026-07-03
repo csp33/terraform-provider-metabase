@@ -28,13 +28,8 @@ func (r *UserRepository) Create(ctx context.Context, email string, firstName str
 
 	resp, err := r.client.Post(ctx, "/api/user", body)
 	if err != nil {
-		// Metabase never truly deletes users: it deactivates them, and the email
-		// stays reserved. Re-creating a user whose email already exists (active or
-		// deactivated) returns 400 "Email address already in use." Rather than
-		// silently adopting/mutating a pre-existing account, we fail with an
-		// actionable error pointing to `terraform import` (the idiomatic way to
-		// bring an existing resource under management). Reactivating a deactivated
-		// user is then done by importing it and setting is_active = true.
+		// Existing email (users are soft-deleted, so it stays reserved) returns 400;
+		// return an import hint instead of adopting the account.
 		var badRequest *metabase.BadRequestError
 		if errors.As(err, &badRequest) && strings.Contains(strings.ToLower(badRequest.Message), "already in use") {
 			return nil, r.emailInUseError(ctx, email)
@@ -50,9 +45,7 @@ func (r *UserRepository) Create(ctx context.Context, email string, firstName str
 	return &res, nil
 }
 
-// emailInUseError builds an actionable error for the "email already in use" case,
-// enriched with the existing user's id and active state so the operator can import
-// it. It never mutates the existing user.
+// emailInUseError returns an import hint for an already-used email; never mutates the user.
 func (r *UserRepository) emailInUseError(ctx context.Context, email string) error {
 	existing, err := r.FindByEmail(ctx, email)
 	if err == nil && existing != nil {
@@ -64,8 +57,7 @@ func (r *UserRepository) emailInUseError(ctx context.Context, email string) erro
 	return fmt.Errorf("a user with email %q already exists in Metabase; import it with `terraform import metabase_user.<name> <id>` instead of creating it", email)
 }
 
-// FindByEmail returns the user with the given email (active or deactivated), or
-// nil if none exists. Matching is case-insensitive.
+// FindByEmail returns the user with this email (any status), or nil. Case-insensitive.
 func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*dtos.UserDTO, error) {
 	path := fmt.Sprintf("/api/user?status=all&query=%s", url.QueryEscape(email))
 	resp, err := r.client.Get(ctx, path)
@@ -122,8 +114,7 @@ func (r *UserRepository) reactivate(ctx context.Context, id string) (bool, error
 
 	resp, err := r.client.Put(ctx, path, body)
 	if err != nil {
-		// Idempotent: reactivating an already-active user returns 400
-		// ("Not able to reactivate an active user"); treat that as success.
+		// Idempotent: reactivating an already-active user returns 400; treat as success.
 		var badRequest *metabase.BadRequestError
 		if errors.As(err, &badRequest) && strings.Contains(strings.ToLower(badRequest.Message), "active user") {
 			return true, nil
@@ -136,19 +127,13 @@ func (r *UserRepository) reactivate(ctx context.Context, id string) (bool, error
 }
 
 func (r *UserRepository) Update(ctx context.Context, id string, email *string, firstName *string, lastName *string, isActive *bool) (bool, error) {
-	// Order matters: Metabase returns 404 on PUT /api/user/:id for a deactivated
-	// user, so we must reactivate BEFORE editing fields, and deactivate AFTER.
-	//   - reactivate first  -> field edits target an active user
-	//   - edit fields (only when active)
-	//   - deactivate last   -> fields were editable while still active
+	// PUT 404s on a deactivated user, so reactivate before editing and deactivate after.
 	if isActive != nil && *isActive {
 		if _, err := r.reactivate(ctx, id); err != nil {
 			return false, err
 		}
 	}
 
-	// Update mutable fields only when at least one is provided. Email is mutable
-	// in Metabase via PUT (no replace needed).
 	if email != nil || firstName != nil || lastName != nil {
 		body := map[string]any{}
 		if email != nil {

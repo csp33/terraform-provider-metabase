@@ -11,13 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
-// lowercaseValidator rejects values that are not already lowercase. Metabase
-// stores emails lowercased server-side; if we let a mixed-case value through, the
-// value returned after apply would differ from the planned value, producing
-// Terraform's "Provider produced inconsistent result after apply" error and
-// leaving an orphaned user in Metabase. Terraform does not allow a provider to
-// silently rewrite a user-supplied value at plan time, so we fail fast with a
-// clear message (before any API call) instead.
+// lowercaseValidator rejects non-lowercase values: Metabase lowercases emails
+// server-side, so a mixed-case value would fail apply and orphan the user.
 type lowercaseValidator struct{}
 
 // LowercaseValidator returns a validator that requires the value to be lowercase.

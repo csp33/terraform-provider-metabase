@@ -15,9 +15,8 @@ import (
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/dtos"
 )
 
-// Metabase's collection INSERT is not concurrency-safe: creating several
-// collections in one apply can fail with a 5xx unique-constraint race. Retry a
-// few times before giving up.
+// Collection creation is not concurrency-safe: concurrent creates race on the
+// revision id and 5xx. Retry a few times.
 const collectionCreateMaxAttempts = 4
 
 type CollectionRepository struct {
@@ -39,9 +38,7 @@ func (r *CollectionRepository) Create(ctx context.Context, name string, parentId
 		body["archived"] = false
 	}
 
-	// Serialize collection creation in this process: it races on the
-	// collection_revision id under concurrency (retries alone don't absorb it at
-	// high parallelism). The retry below still guards inter-process contention.
+	// Serialize in-process (see collectionCreateMaxAttempts).
 	collectionCreateMu.Lock()
 	defer collectionCreateMu.Unlock()
 
@@ -111,10 +108,8 @@ func (r *CollectionRepository) Update(ctx context.Context, id string, name *stri
 	return true, nil
 }
 
-// Archive sends the collection to the Trash. This is recoverable and does NOT
-// permanently delete the collection or its contents (questions/dashboards) —
-// "better safe than sorry" since collections hold data. Sends only "archived" so
-// the collection's location/parent is preserved. Idempotent on 404.
+// Archive sends the collection to the Trash (recoverable; never a permanent
+// delete, since collections hold data). Idempotent on 404.
 func (r *CollectionRepository) Archive(ctx context.Context, id string) error {
 	path := fmt.Sprintf("/api/collection/%s", id)
 	resp, err := r.client.Put(ctx, path, map[string]any{"archived": true})
