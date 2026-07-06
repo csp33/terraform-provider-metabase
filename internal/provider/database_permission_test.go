@@ -50,7 +50,7 @@ func TestAccDatabasePermissionResource(t *testing.T) {
 			{
 				Config: testAccDatabasePermissionConfig(name, "query-builder"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttr("metabase_database_permission.test", "database_id", "2"),
+					resource.TestCheckResourceAttrPair("metabase_database_permission.test", "database_id", "metabase_database.a", "id"),
 					resource.TestCheckResourceAttr("metabase_database_permission.test", "create_queries", "query-builder"),
 					resource.TestCheckResourceAttrPair("metabase_database_permission.test", "group_id", "metabase_permission_group.test", "id"),
 				),
@@ -77,19 +77,47 @@ func TestAccDatabasePermissionResource(t *testing.T) {
 
 func testAccDatabasePermissionConfig(groupName, createQueries string) string {
 	return testAccProviderConfig() + fmt.Sprintf(`
+resource "metabase_database" "a" {
+  name                = "%[1]s db A"
+  engine              = "postgres"
+  deletion_protection = false
+  details = jsonencode({
+    host     = "sample-db"
+    port     = 5432
+    dbname   = "sampledb"
+    user     = "sampleuser"
+    password = "samplepass"
+    ssl      = false
+  })
+}
+
+resource "metabase_database" "b" {
+  name                = "%[1]s db B"
+  engine              = "postgres"
+  deletion_protection = false
+  details = jsonencode({
+    host     = "sample-db"
+    port     = 5432
+    dbname   = "sampledb"
+    user     = "sampleuser"
+    password = "samplepass"
+    ssl      = false
+  })
+}
+
 resource "metabase_permission_group" "test" {
-  name = "%s"
+  name = "%[1]s"
 }
 
 resource "metabase_database_permission" "test" {
   group_id       = metabase_permission_group.test.id
-  database_id    = "2"
-  create_queries = "%s"
+  database_id    = metabase_database.a.id
+  create_queries = "%[2]s"
 }
 
 resource "metabase_database_permission" "other" {
   group_id       = metabase_permission_group.test.id
-  database_id    = "1"
+  database_id    = metabase_database.b.id
   create_queries = "no"
 }
 `, groupName, createQueries)
