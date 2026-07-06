@@ -25,7 +25,7 @@ resource "metabase_user" "john_doe" {
 
 ### Required
 
-- `email` (String) Email of the user
+- `email` (String) Email of the user. Must be lowercase (Metabase stores emails lowercased). Updating it is applied in-place (Metabase supports changing a user's email via PUT).
 - `first_name` (String) First name of the user
 - `last_name` (String) Last name of the user
 

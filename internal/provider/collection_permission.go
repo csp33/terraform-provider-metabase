@@ -45,7 +45,7 @@ func NewCollectionPermission() resource.Resource {
 						PlanModifiers:       []planmodifier.String{stringplanmodifier.RequiresReplace()},
 					},
 					"permission": schema.StringAttribute{
-						MarkdownDescription: "Access level: \"read\" or \"write\".",
+						MarkdownDescription: "Access level: \"read\" or \"write\" (to revoke, delete the resource; there is no \"none\" value).",
 						Required:            true,
 						Validators:          []validator.String{OneOfValidator("read", "write")},
 					},

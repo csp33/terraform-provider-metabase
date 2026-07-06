@@ -27,7 +27,7 @@ resource "metabase_collection" "analytics" {
 
 ### Optional
 
-- `archived` (Boolean) Whether the collection is archived. Archived collections are not visible in the UI. Collections can be archived, but not deleted.
+- `archived` (Boolean) Whether the collection is in the Trash. Set true to send it to the Trash (recoverable) while keeping it managed. Removing the resource also sends it to the Trash (never a permanent delete).
 - `parent_id` (String) ID of the parent collection
 
 ### Read-Only
