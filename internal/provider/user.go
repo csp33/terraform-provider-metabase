@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/terraform"
@@ -14,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 )
 
 func NewUser() resource.Resource {
@@ -36,10 +38,10 @@ func NewUser() resource.Resource {
 						},
 					},
 					"email": schema.StringAttribute{
-						MarkdownDescription: "Email of the user",
+						MarkdownDescription: "Email of the user. Must be lowercase (Metabase stores emails lowercased). Updating it is applied in-place (Metabase supports changing a user's email via PUT).",
 						Required:            true,
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.RequiresReplace(),
+						Validators: []validator.String{
+							LowercaseValidator(),
 						},
 					},
 					"first_name": schema.StringAttribute{
@@ -94,6 +96,12 @@ func NewUser() resource.Resource {
 			getResponse, err := user.repository.Get(ctx, data.Id.ValueString())
 
 			if err != nil {
+				// Gone out-of-band (404): drop from state instead of erroring.
+				var notFound *metabase.NotFoundError
+				if errors.As(err, &notFound) {
+					resp.State.RemoveResource(ctx)
+					return
+				}
 				resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get user: %s", err))
 				return
 			}
@@ -118,7 +126,7 @@ func NewUser() resource.Resource {
 				return
 			}
 
-			_, err := user.repository.Update(ctx, plan.Id.ValueString(), plan.FirstName.ValueStringPointer(), plan.LastName.ValueStringPointer(), isActive)
+			_, err := user.repository.Update(ctx, plan.Id.ValueString(), plan.Email.ValueStringPointer(), plan.FirstName.ValueStringPointer(), plan.LastName.ValueStringPointer(), isActive)
 			if err != nil {
 				resp.Diagnostics.AddError("Update Error", fmt.Sprintf("Unable to update user: %s", err))
 				return
@@ -137,7 +145,7 @@ func NewUser() resource.Resource {
 			}
 
 			isActive := false
-			_, err := user.repository.Update(ctx, state.Id.ValueString(), nil, nil, &isActive)
+			_, err := user.repository.Update(ctx, state.Id.ValueString(), nil, nil, nil, &isActive)
 			if err != nil {
 				resp.Diagnostics.AddError("Deactivate Error", fmt.Sprintf("Unable to deactivate user: %s", err))
 				return

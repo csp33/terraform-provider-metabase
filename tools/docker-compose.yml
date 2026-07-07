@@ -3,7 +3,7 @@
 
 services:
   metabase:
-    image: metabase/metabase:v0.54.4
+    image: metabase/metabase:v0.62.2.12
     hostname: metabase
     volumes:
       - /dev/urandom:/dev/random:ro
@@ -32,6 +32,22 @@ services:
       POSTGRES_PASSWORD: mysecretpassword
     networks:
       - metanet1
+  # A separate Postgres used as the target for the metabase_database acceptance
+  # tests (a database Metabase connects to, distinct from its own app DB above).
+  sample-db:
+    image: postgres:16
+    hostname: sample-db
+    environment:
+      POSTGRES_USER: sampleuser
+      POSTGRES_DB: sampledb
+      POSTGRES_PASSWORD: samplepass
+    networks:
+      - metanet1
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U sampleuser" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 networks:
   metanet1:
     driver: bridge

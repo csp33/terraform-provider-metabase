@@ -78,6 +78,9 @@ func (p *MetabaseProvider) Resources(ctx context.Context) []func() resource.Reso
 		NewCollection,
 		NewUserPermissionGroupMembership,
 		NewUser,
+		NewDatabase,
+		NewDatabasePermission,
+		NewCollectionPermission,
 	}
 }
 

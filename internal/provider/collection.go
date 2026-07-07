@@ -5,6 +5,7 @@ package provider
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/terraform"
@@ -44,7 +45,7 @@ func NewCollection() resource.Resource {
 						Optional:            true,
 					},
 					"archived": schema.BoolAttribute{
-						MarkdownDescription: "Whether the collection is archived. Archived collections are not visible in the UI. Collections can be archived, but not deleted.",
+						MarkdownDescription: "Whether the collection is in the Trash. Set true to send it to the Trash (recoverable) while keeping it managed. Removing the resource also sends it to the Trash (never a permanent delete).",
 						Optional:            true,
 						Computed:            true,
 						Default:             booldefault.StaticBool(false),
@@ -85,6 +86,12 @@ func NewCollection() resource.Resource {
 			getResponse, err := collection.repository.Get(ctx, plan.Id.ValueString())
 
 			if err != nil {
+				// Deleted out-of-band (404): drop from state so it's recreated.
+				var notFound *metabase.NotFoundError
+				if errors.As(err, &notFound) {
+					resp.State.RemoveResource(ctx)
+					return
+				}
 				resp.Diagnostics.AddError("Get Error", fmt.Sprintf("Unable to get collection: %s", err))
 				return
 			}
@@ -118,8 +125,8 @@ func NewCollection() resource.Resource {
 				return
 			}
 
-			archived := true
-			_, err := collection.repository.Update(ctx, state.Id.ValueString(), nil, nil, &archived)
+			// Destroy = archive to Trash (recoverable), never a permanent delete.
+			err := collection.repository.Archive(ctx, state.Id.ValueString())
 			if err != nil {
 				resp.Diagnostics.AddError("Archive Error", fmt.Sprintf("Unable to archive collection: %s", err))
 				return

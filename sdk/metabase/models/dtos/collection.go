@@ -3,9 +3,11 @@
 
 package dtos
 
+// Metabase returns the parent as a path in "location" (e.g. "/", "/12/", "/12/34/"),
+// not as a parent_id field.
 type CollectionDTO struct {
 	Id       int    `json:"id"`
 	Name     string `json:"name"`
-	ParentId *int   `json:"parent_id"`
+	Location string `json:"location"`
 	Archived bool   `json:"archived"`
 }

@@ -6,10 +6,18 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/dtos"
 )
+
+// Collection creation is not concurrency-safe: concurrent creates race on the
+// revision id and 5xx. Retry a few times.
+const collectionCreateMaxAttempts = 4
 
 type CollectionRepository struct {
 	client *metabase.MetabaseAPIClient
@@ -30,8 +38,22 @@ func (r *CollectionRepository) Create(ctx context.Context, name string, parentId
 		body["archived"] = false
 	}
 
-	resp, err := r.client.Post(ctx, "/api/collection", body)
-	if err != nil {
+	// Serialize in-process (see collectionCreateMaxAttempts).
+	collectionCreateMu.Lock()
+	defer collectionCreateMu.Unlock()
+
+	var resp *http.Response
+	var err error
+	for attempt := 1; ; attempt++ {
+		resp, err = r.client.Post(ctx, "/api/collection", body)
+		if err == nil {
+			break
+		}
+		var baseErr *metabase.BaseError
+		if attempt < collectionCreateMaxAttempts && errors.As(err, &baseErr) && baseErr.StatusCode >= 500 {
+			time.Sleep(time.Duration(attempt) * 150 * time.Millisecond)
+			continue
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -60,7 +82,7 @@ func (r *CollectionRepository) Get(ctx context.Context, id string) (*dtos.Collec
 
 func (r *CollectionRepository) Update(ctx context.Context, id string, name *string, parentId *string, archived *bool) (bool, error) {
 	path := fmt.Sprintf("/api/collection/%s", id)
-	body := map[string]any{"archived": archived}
+	body := map[string]any{}
 	if name != nil {
 		body["name"] = *name
 	}
@@ -84,4 +106,21 @@ func (r *CollectionRepository) Update(ctx context.Context, id string, name *stri
 	defer resp.Body.Close()
 
 	return true, nil
+}
+
+// Archive sends the collection to the Trash (recoverable; never a permanent
+// delete, since collections hold data). Idempotent on 404.
+func (r *CollectionRepository) Archive(ctx context.Context, id string) error {
+	path := fmt.Sprintf("/api/collection/%s", id)
+	resp, err := r.client.Put(ctx, path, map[string]any{"archived": true})
+	if err != nil {
+		var notFound *metabase.NotFoundError
+		if errors.As(err, &notFound) {
+			return nil
+		}
+		return err
+	}
+	defer resp.Body.Close()
+
+	return nil
 }

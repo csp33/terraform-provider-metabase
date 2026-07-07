@@ -6,7 +6,11 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net/url"
+	"strings"
+
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase"
 	"github.com/csp33/terraform-provider-metabase/sdk/metabase/models/dtos"
 )
@@ -24,6 +28,12 @@ func (r *UserRepository) Create(ctx context.Context, email string, firstName str
 
 	resp, err := r.client.Post(ctx, "/api/user", body)
 	if err != nil {
+		// Existing email (users are soft-deleted, so it stays reserved) returns 400;
+		// return an import hint instead of adopting the account.
+		var badRequest *metabase.BadRequestError
+		if errors.As(err, &badRequest) && strings.Contains(strings.ToLower(badRequest.Message), "already in use") {
+			return nil, r.emailInUseError(ctx, email)
+		}
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -33,6 +43,42 @@ func (r *UserRepository) Create(ctx context.Context, email string, firstName str
 		return nil, fmt.Errorf("failed to decode create response: %w", err)
 	}
 	return &res, nil
+}
+
+// emailInUseError returns an import hint for an already-used email; never mutates the user.
+func (r *UserRepository) emailInUseError(ctx context.Context, email string) error {
+	existing, err := r.FindByEmail(ctx, email)
+	if err == nil && existing != nil {
+		return fmt.Errorf(
+			"a user with email %q already exists (id %d, is_active=%t); Terraform will not adopt it. Import it instead: `terraform import metabase_user.<name> %d` (to reactivate a deactivated user, import it and set is_active = true)",
+			email, existing.Id, existing.IsActive, existing.Id,
+		)
+	}
+	return fmt.Errorf("a user with email %q already exists in Metabase; import it with `terraform import metabase_user.<name> <id>` instead of creating it", email)
+}
+
+// FindByEmail returns the user with this email (any status), or nil. Case-insensitive.
+func (r *UserRepository) FindByEmail(ctx context.Context, email string) (*dtos.UserDTO, error) {
+	path := fmt.Sprintf("/api/user?status=all&query=%s", url.QueryEscape(email))
+	resp, err := r.client.Get(ctx, path)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var listResponse struct {
+		Data []dtos.UserDTO `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&listResponse); err != nil {
+		return nil, fmt.Errorf("failed to decode user search response: %w", err)
+	}
+
+	for i := range listResponse.Data {
+		if strings.EqualFold(listResponse.Data[i].Email, email) {
+			return &listResponse.Data[i], nil
+		}
+	}
+	return nil, nil
 }
 
 func (r *UserRepository) Get(ctx context.Context, id string) (*dtos.UserDTO, error) {
@@ -68,6 +114,11 @@ func (r *UserRepository) reactivate(ctx context.Context, id string) (bool, error
 
 	resp, err := r.client.Put(ctx, path, body)
 	if err != nil {
+		// Idempotent: reactivating an already-active user returns 400; treat as success.
+		var badRequest *metabase.BadRequestError
+		if errors.As(err, &badRequest) && strings.Contains(strings.ToLower(badRequest.Message), "active user") {
+			return true, nil
+		}
 		return false, err
 	}
 	defer resp.Body.Close()
@@ -75,28 +126,36 @@ func (r *UserRepository) reactivate(ctx context.Context, id string) (bool, error
 	return true, nil
 }
 
-func (r *UserRepository) Update(ctx context.Context, id string, firstName *string, lastName *string, isActive *bool) (bool, error) {
-	if firstName == nil && lastName == nil {
-		return true, nil
-	}
-
-	path := fmt.Sprintf("/api/user/%s", id)
-	body := map[string]any{"first_name": firstName, "last_name": lastName}
-
-	resp, err := r.client.Put(ctx, path, body)
-	if err != nil {
-		return false, err
-	}
-	defer resp.Body.Close()
-
-	if isActive != nil {
-		var err error
-		if !*isActive {
-			_, err = r.deactivate(ctx, id)
-		} else {
-			_, err = r.reactivate(ctx, id)
+func (r *UserRepository) Update(ctx context.Context, id string, email *string, firstName *string, lastName *string, isActive *bool) (bool, error) {
+	// PUT 404s on a deactivated user, so reactivate before editing and deactivate after.
+	if isActive != nil && *isActive {
+		if _, err := r.reactivate(ctx, id); err != nil {
+			return false, err
 		}
+	}
+
+	if email != nil || firstName != nil || lastName != nil {
+		body := map[string]any{}
+		if email != nil {
+			body["email"] = *email
+		}
+		if firstName != nil {
+			body["first_name"] = *firstName
+		}
+		if lastName != nil {
+			body["last_name"] = *lastName
+		}
+
+		path := fmt.Sprintf("/api/user/%s", id)
+		resp, err := r.client.Put(ctx, path, body)
 		if err != nil {
+			return false, err
+		}
+		resp.Body.Close()
+	}
+
+	if isActive != nil && !*isActive {
+		if _, err := r.deactivate(ctx, id); err != nil {
 			return false, err
 		}
 	}
