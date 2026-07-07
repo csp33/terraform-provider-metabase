@@ -4,8 +4,8 @@ This provider aims to manage Metabase resources with Terraform.
 
 ## Requirements
 
-- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.23
+- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0 (or [OpenTofu](https://opentofu.org) >= 1.6)
+- [Go](https://golang.org/doc/install) >= 1.25.8 (to build the provider; matches the `go` directive in `go.mod`)
 
 ## Building The Provider
 
