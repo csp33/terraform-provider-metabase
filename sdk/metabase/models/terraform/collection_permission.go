@@ -12,4 +12,5 @@ type CollectionPermissionTerraformModel struct {
 	GroupId      types.String `tfsdk:"group_id"`
 	CollectionId types.String `tfsdk:"collection_id"`
 	Permission   types.String `tfsdk:"permission"`
+	Propagate    types.Bool   `tfsdk:"propagate"`
 }
